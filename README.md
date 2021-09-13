@@ -1,4 +1,4 @@
-* Group A
+# Group A
 
 A UU-GAME game platform is the game interface. It must allow human players to play a local UU-GAME. 
 
