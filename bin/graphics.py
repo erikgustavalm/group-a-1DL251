@@ -1,11 +1,8 @@
-
-
 class GraphicsHandler:
     def __init__(self):
         pass
 
     def display_game(self, board):
-
         print(
             "[{}]1----------------[{}]2----------------[{}]3\n"
             " |   \               |               /   |\n"
