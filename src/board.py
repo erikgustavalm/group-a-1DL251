@@ -24,15 +24,20 @@ class Board:
     def move_to(self, origin: int, to: int) -> bool:
         nodes[to].change_to(nodes[origin].color)
         nodes[origin].change_to(Color.Empty)
+        return is_part_of_mill(nodes[to])
 
-        for possible_mill in possible_mills[nodes[to]]:
-            for node in possible_mill:
-                if nodes[to].color != node.color:
+    def is_part_of_mill(self, node_idx: int) -> bool:
+        for possible_mill in self.board.possible_mills[node_idx]:
+            for other in possible_mill:
+                if nodes[node_idx].color != nodes[other].color:
                     break
             else:
                 return True
 
         return False
+
+    def remove(self, node_idx: int):
+        nodes[node_idx].change_to(Color.Empty)
 
 
 @dataclass
