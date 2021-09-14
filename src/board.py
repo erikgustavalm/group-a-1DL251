@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from color import Color
 
+
 @dataclass
 class Board:
     nodes: [Node]
@@ -12,7 +13,7 @@ class Board:
 
     def __create_possible_mills(self, num_intersections: int, mills: [[int]]):
         self.possible_mills = {}
-        for i in range(num_intersections+1):
+        for i in range(num_intersections + 1):
             self.possible_mills[i] = []
         for mill in mills:
             self.possible_mills[mill[0]].append([mill[1], mill[2]])
@@ -32,6 +33,7 @@ class Board:
                 return True
 
         return False
+
 
 @dataclass
 class Node:

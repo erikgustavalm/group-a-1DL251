@@ -2,11 +2,13 @@ from color import Color
 
 from board import Board
 
+
 @dataclass
 class Player:
     name: str
     color: Color
     coins_left_to_place: int
+
 
 @dataclass
 class GameState:
