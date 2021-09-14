@@ -1,6 +1,5 @@
 import os
 
-
 def main():
     name = os.name
     print(f"hello, world from OS='{name}'")

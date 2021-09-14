@@ -1,7 +1,5 @@
+@dataclass
 class GraphicsHandler:
-    def __init__(self):
-        pass
-
     def display_game(self, board):
         print(
             "[{}]1----------------[{}]2----------------[{}]3\n"
@@ -25,3 +23,14 @@ class GraphicsHandler:
                 board[15],board[16],board[17],
                 board[18],board[19],board[20],
                 board[21],board[22],board[23]))
+        
+    def display_winner(self, player: str):
+        print(
+            "-----------------------------------------\n"
+            "|                                       |\n"
+            "|   {} has won the game!          |\n"
+            "|                                       |\n"
+            "|          Play again? y/n              |\n"
+            "‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾\n".format(player)
+        )
+        
