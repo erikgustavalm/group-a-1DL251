@@ -35,3 +35,7 @@ class RemoveAfterMill(Command):
 class Move(Command):
     origin: int
     to: int
+
+@dataclass
+class Place(Command):
+    to: int

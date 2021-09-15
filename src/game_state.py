@@ -1,5 +1,6 @@
 from color import Color
 from phase import Phase
+from state import State
 
 from board import Board
 from dataclasses import dataclass
@@ -21,9 +22,69 @@ class GameState:
     current_turn: int
     current_player: Player
 
+    def current_phase(self, player: Player) -> Phase:
+        if player.coins_left_to_place > 0:
+            return Phase.One
+
+        if player.color == Color.Black:
+            num = self.board.num_black
+        elif player.color == Color.White:
+            num = self.board.num_white
+        else:
+            assert False, "Unknown player color, has to be Black or White"
+
+        if num > 3:
+            return Phase.Two
+        return Phase.Three
+
+    # ??? try_move was split in two, try_place_piece is for the first phase
+    # when you only place down pieces, since the Move command takes an origin
+    # We could instead use one function and ignore the origin for the first phase
+    # OR it could be one function that takes a Command
+    # and then choose what to do based on the type of the command
+    def try_place_piece(self, to: int) -> State:
+        # Can only place new pieces in phase one
+        if self.current_phase() != Phase.One:
+            return State.Invalid
+        # and only at empty spots
+        if self.board[to].color != Color.Empty:
+            return State.Invalid
+
+        self.current_player.coins_left_to_place -= 1
+        if self.board.place(to, current_player.color):
+            return State.CreatedMill
+        return State.Valid
+
     # NOTE renamed is_legal_move to try_move
-    def try_move(self, move: Move) -> bool:
-        pass
+    def try_move(self, move: Move) -> State:
+        piece_origin = self.board[move.origin]
+        piece_to = self.board[move.to]
+
+        # State 1 is handled by try_place_piece
+        if self.current_phase() == Phase.One:
+            return State.Invalid
+
+        # Can't move to a spot already occupied by our color
+        if piece_to.color == current_player.color:
+            return State.Invalid
+
+        # can't move a piece that isn't ours
+        if piece_origin.color != current_player.color:
+            return State.Invalid
+
+        if self.current_phase() == Phase.Two:
+            # can move to an adjacent node
+            if move.to in piece_origin.adjacents:
+                if self.board.move_to(move.origin, move.to):
+                    return State.CreatedMill
+                return State.Valid
+            return State.Invalid
+        elif self.current_phase() == Phase.Three:
+            # can move anywhere
+            if self.board.move_to(move.origin, move.to):
+                return State.CreatedMill
+            return State.Valid
+        assert False, "Unknown phase"
 
     # NOTE renamed is_legal_remove to try_remove
     def try_remove(self, cmd_remove: RemoveAfterMill) -> bool:
@@ -55,27 +116,19 @@ class GameState:
             if not self.board.is_part_of_mill(idx):
                 return False
 
-        # We only founds pieces that were part of mills, so it's a legal move
+        # We only found pieces that were part of mills, so it's a legal move
         self.board.remove(cmd_remove.at)
         return True
+
+    def get_piece_count(self, color: Color) -> int:
+        if color == Color.Black:
+            return self.board.num_black
+        elif color == Color.White:
+            return self.board.num_white
+        assert False, "Unknown color (or empty)"
 
     def create_board(self) -> Board:
         pass
 
     def update_mills(self) -> bool:
         pass
-
-    def current_phase(self, player: Player) -> Phase:
-        if player.coins_left_to_place > 0:
-            return Phase.One
-
-        if player.color == Color.Black:
-            num = self.board.num_black
-        elif player.color == Color.White:
-            num = self.board.num_white
-        else:
-            assert False, "Unknown player color, has to be Black or White"
-
-        if num > 3:
-            return Phase.Two
-        return Phase.Three
