@@ -102,13 +102,13 @@ class GameState:
         # blocks player 2 from making any move at all
         # does player 1 have to remove a piece from player 2, allowing player 2
         # to keep playing, or does the game end as soon as player 2 can't make a move?
-        
 
     # ??? try_move was split in two, try_place_piece is for the first phase
     # when you only place down pieces, since the Move command takes an origin
     # We could instead use one function and ignore the origin for the first phase
     # OR it could be one function that takes a Command
     # and then choose what to do based on the type of the command
+
     def try_place_piece(self, to: Place) -> State:
         # Can only place new pieces in phase one
         if self.current_phase(self.current_player) != Phase.One:

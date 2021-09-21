@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from color import Color
 
+
 @dataclass
 class Player:
     name: str

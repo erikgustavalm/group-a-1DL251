@@ -110,24 +110,28 @@ def main():
                 # TODO maybe? Move the get input calls to the commands class
                 # and use the make function that's a stub right now?
                 if next == NextState.Place:
-                    response = Input.get_input(player_str + f"[place piece at]")
+                    response = Input.get_input(
+                        player_str + f"[place piece at]")
                     # TODO validate the response
                     cmd = commands.Place(int(response)-1)
                     state.try_place_piece(cmd)
                 elif next == NextState.Remove:
-                    response = Input.get_input(player_str + f"[node to remove]")
+                    response = Input.get_input(
+                        player_str + f"[node to remove]")
                     # TODO validate the response
                     cmd = commands.RemoveAfterMill(int(response)-1)
                     state.try_remove(cmd)
                 elif next == NextState.Move:
-                    response = Input.get_separated_input(player_str + f"[from] [to]")
+                    response = Input.get_separated_input(
+                        player_str + f"[from] [to]")
                     # TODO validate the response
                     cmd = commands.Move(int(response[0])-1, int(response[1])-1)
                     state.try_move(cmd)
                 elif next == NextState.Lost:
                     print(f"Player {state.get_opponent().name} won!")
                     game_is_running = False
-                else: assert False, "Unhandled state"
+                else:
+                    assert False, "Unhandled state"
         else:
             print("  Invalid input !\n ")
             continue
