@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from color import Color
-from game_state import Player
+from player import Player
 
 
 @dataclass
@@ -35,27 +35,27 @@ class Board:
         self.possible_mills = _create_possible_mills(nodes, mills)
 
     def is_part_of_mill(self, node_idx: int) -> bool:
-        for possible_mill in self.board.possible_mills[node_idx]:
-            for other in possible_mill:
-                if nodes[node_idx].color != nodes[other].color:
+        for mills in self.possible_mills[node_idx]:
+            for node in mills:
+                if self.nodes[node_idx].color != self.nodes[node].color:
                     break
             else:
                 return True
         return False
 
     def remove(self, node_idx: int, remove_from: Player):
-        nodes[node_idx].color = Color.Empty
+        self.nodes[node_idx].color = Color.Empty
         remove_from.pieces -= 1
 
     # returns: if placing the piece created a mill
-    def place(self, to, player: Player) -> bool:
-        nodes[to].color = player.color
+    def place(self, to: int, player: Player) -> bool:
+        self.nodes[to].color = player.color
         player.coins_left_to_place -= 1
         player.pieces += 1
-        return is_part_of_mill(nodes[to])
+        return self.is_part_of_mill(to)
 
     # returns: if the move created a mill or not
     def move_to(self, origin: int, to: int) -> bool:
-        nodes[to].color = nodes[origin].color
-        nodes[origin].color = Color.Empty
-        return is_part_of_mill(nodes[to])
+        self.nodes[to].color = nodes[origin].color
+        self.nodes[origin].color = Color.Empty
+        return self.is_part_of_mill(to)

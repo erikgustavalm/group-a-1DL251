@@ -5,6 +5,14 @@ from game_state import GameState
 
 from dataclasses import dataclass
 
+def color_to_ascii(c: Color):
+    if c == Color.Black:
+        return "██"
+    elif c == Color.White:
+        return "▒▒"
+    else:
+        return "  "
+
 
 @dataclass
 class GraphicsHandler:
@@ -24,23 +32,16 @@ class GraphicsHandler:
         # Player status        
         print("   Round %d ( remaining turns: %d )" %(gs.current_turn, 250-gs.current_turn))
         print("  ┌───────────────────────┬────────────────────┐\n"
-              "  │ %-15s( ██ ) │   %2d pieces left   │\n"
+              "  │ %-15s( %s ) │   %2d pieces left   │\n"
               "  ├───────────────────────┼────────────────────┤\n"
-              "  │ %-15s( ░░ ) │   %2d pieces left   │\n" 
-              "  └───────────────────────┴────────────────────┘\n" %(gs.player1.name, gs.player1.coins_left_to_place, gs.player2.name, gs.player2.coins_left_to_place))
-        
-
+              "  │ %-15s( %s ) │   %2d pieces left   │\n" 
+              "  └───────────────────────┴────────────────────┘\n" %(gs.player1.name, color_to_ascii(gs.player1.color), gs.player1.coins_left_to_place, gs.player2.name, color_to_ascii(gs.player2.color), gs.player2.coins_left_to_place))
 
     def display_game(self, board: [Color]):
         # NOTE: Modifies board variable destructively (contents change outside function)
 
         for idx, c in enumerate(board):
-            if c == Color.Black:
-                board[idx] = "██"
-            elif c == Color.White:
-                board[idx] = "░░"
-            else:
-                board[idx] = "  "
+            board[idx] = color_to_ascii(c)
 
         print("    ┌─────┐                 ┌─────┐                 ┌─────┐\n"
               "     1  {} ───────────────── 2  {} ───────────────── 3  {} \n"

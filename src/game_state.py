@@ -5,16 +5,18 @@ from phase import Phase
 from state import State
 
 from board import Board
+from player import Player
 from dataclasses import dataclass
-from commands import Move, RemoveAfterMill
+from commands import Move, RemoveAfterMill, Place
+
+from enum import Enum, auto
 
 
-@dataclass
-class Player:
-    name: str
-    color: Color
-    coins_left_to_place: int
-    pieces: int
+class NextState(Enum):
+    Remove = auto()
+    Place = auto()
+    Victory = auto()
+    Move = auto()
 
 
 @dataclass
@@ -24,9 +26,7 @@ class GameState:
     board: Board
     current_turn: int
     current_player: Player
-
-    def has_won(self) -> bool:
-        pass
+    _did_create_mill: bool = False
 
     def get_opponent(self) -> Player:
         if self.current_player == self.player1:
@@ -35,6 +35,7 @@ class GameState:
             return self.player1
 
     def _end_turn(self):
+        self._did_create_mill = False
         self.current_turn += 1
         if self.current_player == self.player1:
             self.current_player = self.player2
@@ -57,35 +58,53 @@ class GameState:
             self.player2.color = Color.Black
             self.current_player = self.player2
 
+    def has_won(self) -> bool:
+        pass
+
+    def next(self) -> NextState:
+        # TODO handle victory
+        if self._did_create_mill:
+            return NextState.Remove
+        phase = self.current_phase(self.current_player)
+        if phase == Phase.One:
+            return NextState.Place
+        else:
+            return NextState.Move
+
     def current_phase(self, player: Player) -> Phase:
         if player.coins_left_to_place > 0:
             return Phase.One
-
-        if player.color == Color.Black:
-            num = self.board.num_black
-        elif player.color == Color.White:
-            num = self.board.num_white
-        else:
-            assert False, "Unknown player color, has to be Black or White"
-
-        if num > 3:
+        if player.pieces > 3:
             return Phase.Two
         return Phase.Three
+        # TODO maybe return Phase.GameOver
+        # if the player has less than 3 pieces
+
+        # TODO check if the opposing player can make a move, if they can't
+        # the game should end.
+
+        # TODO edge-case:
+        # What happens if player 1 gets a mill that at the same time
+        # blocks player 2 from making any move at all
+        # does player 1 have to remove a piece from player 2, allowing player 2
+        # to keep playing, or does the game end as soon as player 2 can't make a move?
+        
 
     # ??? try_move was split in two, try_place_piece is for the first phase
     # when you only place down pieces, since the Move command takes an origin
     # We could instead use one function and ignore the origin for the first phase
     # OR it could be one function that takes a Command
     # and then choose what to do based on the type of the command
-    def try_place_piece(self, to: int) -> State:
+    def try_place_piece(self, to: Place) -> State:
         # Can only place new pieces in phase one
-        if self.current_phase() != Phase.One:
+        if self.current_phase(self.current_player) != Phase.One:
             return State.Invalid
         # and only at empty spots
-        if self.board[to].color != Color.Empty:
+        if self.board.nodes[to.to].color != Color.Empty:
             return State.Invalid
 
-        if self.board.place(to, current_player):
+        if self.board.place(to.to, self.current_player):
+            self._did_create_mill = True
             return State.CreatedMill
 
         self._end_turn()
@@ -93,11 +112,11 @@ class GameState:
 
     # NOTE renamed is_legal_move to try_move
     def try_move(self, move: Move) -> State:
-        piece_origin = self.board[move.origin]
-        piece_to = self.board[move.to]
+        piece_origin = self.board.nodes[move.origin]
+        piece_to = self.board.nodes[move.to]
 
         # State 1 is handled by try_place_piece
-        if self.current_phase() == Phase.One:
+        if self.current_phase(self.current_player) == Phase.One:
             return State.Invalid
 
         # Can't move to a spot already occupied by our color
@@ -108,17 +127,19 @@ class GameState:
         if piece_origin.color != current_player.color:
             return State.Invalid
 
-        if self.current_phase() == Phase.Two:
+        if self.current_phase(self.current_player) == Phase.Two:
             # can move to an adjacent node
             if move.to in piece_origin.adjacents:
                 if self.board.move_to(move.origin, move.to):
+                    self._did_create_mill = True
                     return State.CreatedMill
                 self._end_turn()
                 return State.Valid
             return State.Invalid
-        elif self.current_phase() == Phase.Three:
+        elif self.current_phase(self.current_player) == Phase.Three:
             # can move anywhere
             if self.board.move_to(move.origin, move.to):
+                self._did_create_mill = True
                 return State.CreatedMill
             self._end_turn()
             return State.Valid
@@ -126,11 +147,11 @@ class GameState:
 
     # NOTE renamed is_legal_remove to try_remove
     def try_remove(self, cmd_remove: RemoveAfterMill) -> bool:
-        remove = self.board[cmd_remove.at]
+        remove = self.board.nodes[cmd_remove.at]
 
         if remove.color == Color.Empty:
             return False
-        if remove.color == current_player.color:
+        if remove.color == self.current_player.color:
             return False
 
         # Is the piece we want to remove part of a mill?

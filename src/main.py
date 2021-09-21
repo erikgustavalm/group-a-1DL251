@@ -4,6 +4,8 @@ import random
 import graphics
 import input_handler
 import game_state
+from game_state import NextState
+import commands
 
 from color import Color
 
@@ -59,6 +61,7 @@ mills = [[x - 1 for x in l] for l in mills]
 
 
 def clear():
+    return
     if os.name == "posix":  # linux or mac
         os.system('clear')
     elif os.name == "nt":  # windows
@@ -104,14 +107,34 @@ def main():
             while game_is_running:
                 gh.display_status(state)
                 gh.display_game([node.color for node in state.board.nodes])
+                player_str = f"   Player {state.current_player.name}:  "
 
-                # Command action
-                # Rules
-
-                state.current_turn += 1
-                # end_game situation
-                game_is_running = False
-                game_start = False
+                next = state.next()
+                # TODO maybe? Move the get input calls to the commands class
+                # and use the make function that's a stub right now?
+                if next == NextState.Place:
+                    # ask for place
+                    response = Input.get_input(player_str + f"[place piece at]")
+                    # TODO validate the response
+                    # create place command
+                    cmd = commands.Place(int(response)-1)
+                    # call try_place_piece
+                    state.try_place_piece(cmd)
+                elif next == NextState.Remove:
+                    response = Input.get_input(player_str + f"[node to remove]")
+                    # TODO validate the response
+                    cmd = commands.RemoveAfterMill(int(response)-1)
+                    state.try_remove(cmd)
+                elif next == NextState.Move:
+                    response = Input.get_separated_input(player_str + f"[from] [to]")
+                    # TODO validate the response
+                    cmd = commands.Move(int(response[0])-1, int(response[1])-1)
+                    state.try_move(cmd)
+                elif next == NextState.Victory:
+                    # handle victory
+                    print("victory!")
+                    game_is_running = False
+                else: assert False, "Unhandled state"
         else:
             print("  Invalid input !\n ")
             continue

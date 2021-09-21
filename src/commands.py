@@ -7,8 +7,6 @@ from color import Color
 @dataclass
 class Command():
     # Abstract class, don't instantiate a command
-    color: Color
-
     def validate(self, input: str) -> bool:
         pass
 
