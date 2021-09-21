@@ -5,20 +5,37 @@ from color import Color
 
 
 @dataclass
+class Node:
+    adjacents: [int]
+    color: Color
+
+
+def _create_possible_mills(num_intersections: int, mills: [[int]]) -> dict[int, [[int]]]:
+    possible_mills = {}
+    for i in range(num_intersections + 1):
+        possible_mills[i] = []
+    for mill in mills:
+        possible_mills[mill[0]].append([mill[1], mill[2]])
+        possible_mills[mill[1]].append([mill[0], mill[2]])
+        possible_mills[mill[2]].append([mill[0], mill[1]])
+    return possible_mills
+
+
+@dataclass
 class Board:
     nodes: [Node]
     possible_mills: dict[int, [[int]]]
     num_black: int
     num_white: int
 
-    def __create_possible_mills(self, num_intersections: int, mills: [[int]]):
-        self.possible_mills = {}
-        for i in range(num_intersections + 1):
-            self.possible_mills[i] = []
-        for mill in mills:
-            self.possible_mills[mill[0]].append([mill[1], mill[2]])
-            self.possible_mills[mill[1]].append([mill[0], mill[2]])
-            self.possible_mills[mill[2]].append([mill[0], mill[1]])
+    def __init__(self, nodes: int, adjacent: [[int]], mills: [[int]]):
+        self.nodes = []
+        for idx in range(nodes):
+            self.nodes.append(Node([adjacent[idx]], Color.Empty))
+
+        self.possible_mills = _create_possible_mills(nodes, mills)
+        self.num_black = 0
+        self.num_white = 0
 
     def is_part_of_mill(self, node_idx: int) -> bool:
         for possible_mill in self.board.possible_mills[node_idx]:
@@ -49,9 +66,3 @@ class Board:
         replace(to, nodes[origin].color)
         remove(origin)
         return is_part_of_mill(nodes[to])
-
-
-@dataclass
-class Node:
-    adjacents: [Node]
-    color: Color

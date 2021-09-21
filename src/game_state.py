@@ -1,3 +1,5 @@
+import random
+
 from color import Color
 from phase import Phase
 from state import State
@@ -21,8 +23,23 @@ class GameState:
     board: Board
     current_turn: int
     current_player: Player
-    
-        
+
+    # board: (num_nodes, adjacent_nodes, mills)
+    def __init__(self, player1: str, player2: str, board: (int, [[int]], [[int]])):
+        self.player1 = Player(player1, Color.Empty, 11)
+        self.player2 = Player(player2, Color.Empty, 11)
+        self.board = Board(board[0], board[1], board[2])
+        self.current_turn = 1
+
+        if random.randint(1, 2) == 1:
+            self.player1.color = Color.Black
+            self.player2.color = Color.White
+            self.current_player = self.player1
+        else:
+            self.player1.color = Color.White
+            self.player2.color = Color.Black
+            self.current_player = self.player2
+
     def current_phase(self, player: Player) -> Phase:
         if player.coins_left_to_place > 0:
             return Phase.One
@@ -127,9 +144,6 @@ class GameState:
         elif color == Color.White:
             return self.board.num_white
         assert False, "Unknown color (or empty)"
-
-    def create_board(self) -> Board:
-        pass
 
     def update_mills(self) -> bool:
         pass
