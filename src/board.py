@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from color import Color
+from game_state import Player
 
 
 @dataclass
@@ -25,8 +26,6 @@ def _create_possible_mills(num_intersections: int, mills: [[int]]) -> dict[int, 
 class Board:
     nodes: [Node]
     possible_mills: dict[int, [[int]]]
-    num_black: int
-    num_white: int
 
     def __init__(self, nodes: int, adjacent: [[int]], mills: [[int]]):
         self.nodes = []
@@ -34,8 +33,6 @@ class Board:
             self.nodes.append(Node([adjacent[idx]], Color.Empty))
 
         self.possible_mills = _create_possible_mills(nodes, mills)
-        self.num_black = 0
-        self.num_white = 0
 
     def is_part_of_mill(self, node_idx: int) -> bool:
         for possible_mill in self.board.possible_mills[node_idx]:
@@ -46,23 +43,19 @@ class Board:
                 return True
         return False
 
-    def replace(self, node_idx: int, new_color: Color):
-        if nodes[node_idx].color == Color.Black:
-            num_black -= 1
-        elif nodes[node_idx].color == Color.White:
-            num_white -= 1
-        nodes[node_idx].color = new_color
-
-    def remove(self, node_idx: int):
-        replace(node_idx, Color.Empty)
+    def remove(self, node_idx: int, remove_from: Player):
+        nodes[node_idx].color = Color.Empty
+        remove_from.pieces -= 1
 
     # returns: if placing the piece created a mill
-    def place(self, to, color) -> bool:
-        replace(to, color)
+    def place(self, to, player: Player) -> bool:
+        nodes[to].color = player.color
+        player.coins_left_to_place -= 1
+        player.pieces += 1
         return is_part_of_mill(nodes[to])
 
     # returns: if the move created a mill or not
     def move_to(self, origin: int, to: int) -> bool:
-        replace(to, nodes[origin].color)
-        remove(origin)
+        nodes[to].color = nodes[origin].color
+        nodes[origin].color = Color.Empty
         return is_part_of_mill(nodes[to])

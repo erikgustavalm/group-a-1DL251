@@ -14,6 +14,7 @@ class Player:
     name: str
     color: Color
     coins_left_to_place: int
+    pieces: int
 
 
 @dataclass
@@ -23,6 +24,22 @@ class GameState:
     board: Board
     current_turn: int
     current_player: Player
+
+    def has_won(self) -> bool:
+        pass
+
+    def get_opponent(self) -> Player:
+        if self.current_player == self.player1:
+            return self.player2
+        else:
+            return self.player1
+
+    def _end_turn(self):
+        self.current_turn += 1
+        if self.current_player == self.player1:
+            self.current_player = self.player2
+        else:
+            self.current_player = self.player1
 
     # board: (num_nodes, adjacent_nodes, mills)
     def __init__(self, player1: str, player2: str, board: (int, [[int]], [[int]])):
@@ -68,9 +85,10 @@ class GameState:
         if self.board[to].color != Color.Empty:
             return State.Invalid
 
-        self.current_player.coins_left_to_place -= 1
-        if self.board.place(to, current_player.color):
+        if self.board.place(to, current_player):
             return State.CreatedMill
+
+        self._end_turn()
         return State.Valid
 
     # NOTE renamed is_legal_move to try_move
@@ -95,12 +113,14 @@ class GameState:
             if move.to in piece_origin.adjacents:
                 if self.board.move_to(move.origin, move.to):
                     return State.CreatedMill
+                self._end_turn()
                 return State.Valid
             return State.Invalid
         elif self.current_phase() == Phase.Three:
             # can move anywhere
             if self.board.move_to(move.origin, move.to):
                 return State.CreatedMill
+            self._end_turn()
             return State.Valid
         assert False, "Unknown phase"
 
@@ -116,7 +136,8 @@ class GameState:
         # Is the piece we want to remove part of a mill?
         # If it isn't, it's always a legal move
         if not self.board.is_part_of_mill(cmd_remove.at):
-            self.board.remove(cmd_remove.at)
+            self.board.remove(cmd_remove.at, self.get_opponent())
+            self._end_turn()
             return True
 
         # if it is, we need to check if all other pieces of the same color
@@ -135,7 +156,8 @@ class GameState:
                 return False
 
         # We only found pieces that were part of mills, so it's a legal move
-        self.board.remove(cmd_remove.at)
+        self.board.remove(cmd_remove.at, self.get_opponent())
+        self._end_turn()
         return True
 
     def get_piece_count(self, color: Color) -> int:
