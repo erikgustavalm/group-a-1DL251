@@ -76,14 +76,11 @@ def main():
     while game_start:
         gh.display_menu()
 
-        menu_option = Input.get_input("   Option([ P / E ]):  ")
-        option = menu_option[0]
+        option = Input.get_input("   Option([ P / E ]):  ")
 
-        if option[0] == 'E':
+        if option == 'E':
             while game_start:
                 sure_exit = Input.get_input("   Sure to exit([ Y / N ]):  ")
-                sure_exit = sure_exit[0]
-
                 if sure_exit == 'Y':
                     print("\n   >>> Exit Game\n")
                     game_start = False
@@ -93,7 +90,7 @@ def main():
                 else:
                     print("   Invalid input !\n")
                     continue
-        elif option[0] == 'P':
+        elif option == 'P':
             clear()
             print("   Please input player name (Ｗithin 15 words):\n"
                   "   -------------------------------------------")
@@ -113,12 +110,9 @@ def main():
                 # TODO maybe? Move the get input calls to the commands class
                 # and use the make function that's a stub right now?
                 if next == NextState.Place:
-                    # ask for place
                     response = Input.get_input(player_str + f"[place piece at]")
                     # TODO validate the response
-                    # create place command
                     cmd = commands.Place(int(response)-1)
-                    # call try_place_piece
                     state.try_place_piece(cmd)
                 elif next == NextState.Remove:
                     response = Input.get_input(player_str + f"[node to remove]")
@@ -130,9 +124,8 @@ def main():
                     # TODO validate the response
                     cmd = commands.Move(int(response[0])-1, int(response[1])-1)
                     state.try_move(cmd)
-                elif next == NextState.Victory:
-                    # handle victory
-                    print("victory!")
+                elif next == NextState.Lost:
+                    print(f"Player {state.get_opponent().name} won!")
                     game_is_running = False
                 else: assert False, "Unhandled state"
         else:

@@ -30,7 +30,7 @@ class Board:
     def __init__(self, nodes: int, adjacent: [[int]], mills: [[int]]):
         self.nodes = []
         for idx in range(nodes):
-            self.nodes.append(Node([adjacent[idx]], Color.Empty))
+            self.nodes.append(Node(adjacent[idx], Color.Empty))
 
         self.possible_mills = _create_possible_mills(nodes, mills)
 
@@ -56,6 +56,13 @@ class Board:
 
     # returns: if the move created a mill or not
     def move_to(self, origin: int, to: int) -> bool:
-        self.nodes[to].color = nodes[origin].color
+        self.nodes[to].color = self.nodes[origin].color
         self.nodes[origin].color = Color.Empty
         return self.is_part_of_mill(to)
+
+    def get_nodes(self, player: Player):
+        node_indexes = []
+        for idx, node in enumerate(self.nodes):
+            if node.color == player.color:
+                node_indexes.append(idx)
+        return node_indexes

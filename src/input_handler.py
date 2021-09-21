@@ -7,4 +7,4 @@ class InputHandler:
 
     def get_separated_input(self, question: str) -> [str]:
         response = input(question).upper()
-        return response.replace(",", " ").split(" ")
+        return list(filter(None, response.replace(",", " ").split()))

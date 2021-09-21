@@ -15,7 +15,7 @@ from enum import Enum, auto
 class NextState(Enum):
     Remove = auto()
     Place = auto()
-    Victory = auto()
+    Lost = auto()
     Move = auto()
 
 
@@ -58,18 +58,37 @@ class GameState:
             self.player2.color = Color.Black
             self.current_player = self.player2
 
-    def has_won(self) -> bool:
-        pass
+    def can_make_adjacent_move(self, player: Player):
+        node_indexes = self.board.get_nodes(player)
+        for idx in node_indexes:
+            for adjacent in self.board.nodes[idx].adjacents:
+                if self.board.nodes[adjacent].color == Color.Empty:
+                    return True
+        return False
+
+    def has_lost(self) -> bool:
+        player = self.current_player
+        if (player.coins_left_to_place > 0
+                or self.get_opponent().coins_left_to_place > 0):
+            return False
+
+        if player.pieces < 3:
+            return True
+        phase = self.current_phase(player)
+        if phase == Phase.Two and not self.can_make_adjacent_move(player):
+            return True
+        return False
 
     def next(self) -> NextState:
-        # TODO handle victory
+        if self.has_lost():
+            return NextState.Lost
         if self._did_create_mill:
             return NextState.Remove
+
         phase = self.current_phase(self.current_player)
         if phase == Phase.One:
             return NextState.Place
-        else:
-            return NextState.Move
+        return NextState.Move
 
     def current_phase(self, player: Player) -> Phase:
         if player.coins_left_to_place > 0:
@@ -77,11 +96,6 @@ class GameState:
         if player.pieces > 3:
             return Phase.Two
         return Phase.Three
-        # TODO maybe return Phase.GameOver
-        # if the player has less than 3 pieces
-
-        # TODO check if the opposing player can make a move, if they can't
-        # the game should end.
 
         # TODO edge-case:
         # What happens if player 1 gets a mill that at the same time
@@ -120,16 +134,17 @@ class GameState:
             return State.Invalid
 
         # Can't move to a spot already occupied by our color
-        if piece_to.color == current_player.color:
+        if piece_to.color == self.current_player.color:
             return State.Invalid
 
         # can't move a piece that isn't ours
-        if piece_origin.color != current_player.color:
+        if piece_origin.color != self.current_player.color:
             return State.Invalid
 
         if self.current_phase(self.current_player) == Phase.Two:
             # can move to an adjacent node
-            if move.to in piece_origin.adjacents:
+            if (move.to in piece_origin.adjacents and
+                    self.board.nodes[move.to].color == Color.Empty):
                 if self.board.move_to(move.origin, move.to):
                     self._did_create_mill = True
                     return State.CreatedMill
