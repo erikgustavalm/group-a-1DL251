@@ -16,13 +16,12 @@ class Player:
 
 @dataclass
 class GameState:
-    #player1: Player
-    #player2: Player
-    #board: Board
+    player1: Player
+    player2: Player
+    board: Board
     current_turn: int
-    #current_player: Player
+    current_player: Player
     
-    current_turn = 1
         
     def current_phase(self, player: Player) -> Phase:
         if player.coins_left_to_place > 0:
