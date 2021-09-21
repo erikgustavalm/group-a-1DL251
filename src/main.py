@@ -94,11 +94,14 @@ def main():
             clear()
             print("   Please input player name (Ｗithin 15 words):\n"
                   "   -------------------------------------------")
+            # TODO check that the input is not empty, retry until non-empty
+            # TODO (?) check that p1_name is not the same as p2_name, retry until different
             p1_name = Input.get_input("   Player 1:  ")
             p2_name = Input.get_input("   Player 2:  ")
 
+            num_nodes = len(board_connections)
             state = game_state.GameState(
-                p1_name, p2_name, (len(board_connections), board_connections, mills))
+                p1_name, p2_name, (num_nodes, board_connections, mills))
 
             game_is_running = True
             while game_is_running:
@@ -112,20 +115,48 @@ def main():
                 if next == NextState.Place:
                     response = Input.get_input(
                         player_str + f"[place piece at]")
-                    # TODO validate the response
-                    cmd = commands.Place(int(response)-1)
+
+                    # TODO validate the response (better)
+                    if len(response) != 1:
+                        continue
+                    if not response.isdigit():
+                        continue
+                    to = int(response) - 1
+                    if not (0 <= to < num_nodes):
+                        continue
+
+                    cmd = commands.Place(to)
                     state.try_place_piece(cmd)
                 elif next == NextState.Remove:
                     response = Input.get_input(
                         player_str + f"[node to remove]")
-                    # TODO validate the response
+
+                    # TODO validate the response (better)
+                    if len(response) != 1:
+                        continue
+                    if not response.isdigit():
+                        continue
+                    to = int(response) - 1
+                    if not (0 <= to < num_nodes):
+                        continue
+
                     cmd = commands.RemoveAfterMill(int(response)-1)
                     state.try_remove(cmd)
                 elif next == NextState.Move:
                     response = Input.get_separated_input(
                         player_str + f"[from] [to]")
-                    # TODO validate the response
-                    cmd = commands.Move(int(response[0])-1, int(response[1])-1)
+
+                    # TODO validate the response (better)
+                    if len(response) != 2:
+                        continue
+                    if not response[0].isdigit() or not response[1].isdigit():
+                        continue
+                    origin = int(response[0]) - 1
+                    to = int(response[1]) - 1
+                    if not (0 <= origin < num_nodes and 0 <= to < num_nodes):
+                        continue
+
+                    cmd = commands.Move(origin, to)
                     state.try_move(cmd)
                 elif next == NextState.Lost:
                     print(f"Player {state.get_opponent().name} won!")
