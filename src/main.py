@@ -136,7 +136,6 @@ def main():
                         continue
 
                     cmd = commands.Place(to)
-                    cmd = commands.Surrender()
                     state.try_command(cmd, gh)
                 elif next == NextState.Remove:
                     response = Input.get_input(
