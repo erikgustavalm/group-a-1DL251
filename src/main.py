@@ -63,13 +63,18 @@ mills = [[x - 1 for x in l] for l in mills]
 
 def clear():
     return
-    if os.name == "posix":  # linux or mac
-        os.system('clear')
-    elif os.name == "nt":  # windows
-        os.system('cls')
+    # if os.name == "posix":  # linux or mac
+    #     os.system('clear')
+    # elif os.name == "nt":  # windows
+    #     os.system('cls')
 
 
 def main():
+    # vt100 escape codes test, if "Test" is printed in blue it works
+    # os.system(" ")
+    # print('\033[36mTest\033[0m')
+    # return
+
     Input = input_handler.InputHandler()
     gh = graphics.GraphicsHandler()
 
@@ -104,62 +109,46 @@ def main():
             state = game_state.GameState(
                 p1_name, p2_name, (num_nodes, board_connections, mills))
 
-            b = None
-
             game_is_running = True
             while game_is_running:
-                gh.display_status(state)
+                gh.display_status(
+                    state.player1, state.player2, state.current_turn)
                 gh.display_game([node.color for node in state.board.nodes])
+                gh.display_messages()
+
                 player_str = f"   Player {state.current_player.name}:  "
 
-                if b == State.Invalid:
-                    print("attempt to place piece was invalid")
-                elif b == State.CreatedMill:
-                    print("your placement created a mill")
-                elif b == State.Valid:
-                    print(f"your piece was placed on node {to+1}")
-                b = None
-
                 next = state.next()
-                # TODO maybe? Move the get input calls to the commands class
-                # and use the make function that's a stub right now?
                 if next == NextState.Place:
                     response = Input.get_input(
-                        player_str + f"[place piece at]")
+                        player_str + f"[place piece at] ")
 
-                    # # TODO validate the response (better)
-                    # if len(response) != 1:
-                    #     continue
-                    # if not response.isdigit():
-                    #     continue
+                    # TODO validate the response (better)
+                    if not response.isdigit():
+                        continue
                     to = int(response) - 1
-                    # if not (0 <= to < num_nodes):
-                    #     continue
-
-                    ## TODO the validation did not work.
+                    if not (0 <= to < num_nodes):
+                        continue
 
                     cmd = commands.Place(to)
-                    b = state.try_place_piece(cmd)
-                    # TODO(Hasnain) Add small message whether move was succesful or not
-                    # TODO this should happen after printing a new screen, not before.
+                    cmd = commands.Surrender()
+                    state.try_command(cmd, gh)
                 elif next == NextState.Remove:
                     response = Input.get_input(
-                        player_str + f"[node to remove]")
+                        player_str + f"[node to remove] ")
 
                     # # TODO validate the response (better)
-                    # if len(response) != 1:
-                    #     continue
-                    # if not response.isdigit():
-                    #     continue
-                    to = int(response) - 1
-                    # if not (0 <= to < num_nodes):
-                    #     continue
+                    if not response.isdigit():
+                        continue
+                    at = int(response) - 1
+                    if not (0 <= at < num_nodes):
+                        continue
 
-                    cmd = commands.RemoveAfterMill(int(response)-1)
-                    state.try_remove(cmd)
+                    cmd = commands.RemoveAfterMill(at)
+                    state.try_command(cmd, gh)
                 elif next == NextState.Move:
                     response = Input.get_separated_input(
-                        player_str + f"[from] [to]")
+                        player_str + f"[from] [to] ")
 
                     # # TODO validate the response (better)
                     # if len(response) != 2:
@@ -172,7 +161,8 @@ def main():
                     #     continue
 
                     cmd = commands.Move(origin, to)
-                    state.try_move(cmd)
+                    state.try_command(cmd, gh)
+
                 elif next == NextState.Lost:
                     print(f"Player {state.get_opponent().name} won!")
                     game_is_running = False

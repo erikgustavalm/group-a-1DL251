@@ -7,12 +7,7 @@ from color import Color
 @dataclass
 class Command():
     # Abstract class, don't instantiate a command
-    def validate(self, input: str) -> bool:
-        pass
-
-    def make(self, input: str) -> Command:
-        pass
-
+    pass
 
 @dataclass
 class Surrender(Command):

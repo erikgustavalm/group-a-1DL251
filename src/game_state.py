@@ -7,7 +7,8 @@ from state import State
 from board import Board
 from player import Player
 from dataclasses import dataclass
-from commands import Move, RemoveAfterMill, Place
+from commands import Command, Move, Place, RemoveAfterMill
+from graphics import GraphicsHandler
 
 from enum import Enum, auto
 
@@ -112,7 +113,36 @@ class GameState:
     # OR it could be one function that takes a Command
     # and then choose what to do based on the type of the command
 
-    def try_place_piece(self, to: Place) -> State:
+    def try_command(self, cmd: Command, gh: GraphicsHandler) -> State:
+        res = None
+        if isinstance(cmd, Place):
+            res = self._try_place_piece(cmd)
+            if res == State.CreatedMill:
+                gh.add_message("you got a mill!")
+            elif res == State.Valid:
+                gh.add_message(f"Your piece was placed on node {cmd.to+1}")
+            else:
+                gh.add_message("Your command was invalid!")
+        elif isinstance(cmd, Move):
+            res = self._try_move(cmd)
+            if res == State.CreatedMill:
+                gh.add_message("you got a mill!")
+            elif res == State.Valid:
+                gh.add_message(
+                    f"Your piece was moved from node {cmd.origin+1} to node {cmd.to+1}")
+            else:
+                gh.add_message("Your command was invalid!")
+        elif isinstance(cmd, RemoveAfterMill):
+            res = self._try_remove(cmd)
+            if res == State.Valid:
+                gh.add_message(
+                    f"You removed the opponent's piece at node {cmd.at+1}")
+            else:
+                gh.add_message("Your command was invalid!")
+        else:
+            assert False, f"Invalid command: {cmd}"
+
+    def _try_place_piece(self, to: Place) -> State:
         # Can only place new pieces in phase one
         if self.current_phase(self.current_player) != Phase.One:
             return State.Invalid
@@ -128,7 +158,7 @@ class GameState:
         return State.Valid
 
     # NOTE renamed is_legal_move to try_move
-    def try_move(self, move: Move) -> State:
+    def _try_move(self, move: Move) -> State:
         piece_origin = self.board.nodes[move.origin]
         piece_to = self.board.nodes[move.to]
 
@@ -164,20 +194,20 @@ class GameState:
         assert False, "Unknown phase"
 
     # NOTE renamed is_legal_remove to try_remove
-    def try_remove(self, cmd_remove: RemoveAfterMill) -> bool:
+    def _try_remove(self, cmd_remove: RemoveAfterMill) -> State:
         remove = self.board.nodes[cmd_remove.at]
 
         if remove.color == Color.Empty:
-            return False
+            return State.Invalid
         if remove.color == self.current_player.color:
-            return False
+            return State.Invalid
 
         # Is the piece we want to remove part of a mill?
         # If it isn't, it's always a legal move
         if not self.board.is_part_of_mill(cmd_remove.at):
             self.board.remove(cmd_remove.at, self.get_opponent())
             self._end_turn()
-            return True
+            return State.Valid
 
         # if it is, we need to check if all other pieces of the same color
         # are part of mills, then it's a legal move
@@ -192,12 +222,12 @@ class GameState:
                 continue
 
             if not self.board.is_part_of_mill(idx):
-                return False
+                return State.Invalid
 
         # We only found pieces that were part of mills, so it's a legal move
         self.board.remove(cmd_remove.at, self.get_opponent())
         self._end_turn()
-        return True
+        return State.Valid
 
     def get_piece_count(self, color: Color) -> int:
         if color == Color.Black:

@@ -1,7 +1,7 @@
 from color import Color
 
-from game_state import Player
-from game_state import GameState
+from player import Player
+# from game_state import GameState
 
 from dataclasses import dataclass
 
@@ -15,8 +15,12 @@ def color_to_ascii(c: Color):
         return "  "
 
 
-@dataclass
 class GraphicsHandler:
+    _messages: [str] = []
+
+    def add_message(self, message: str):
+        self._messages.append(message)
+
     def display_menu(self):
         print("   ╔═════════════════════╗\n"
               "   ║       UU-Game       ║\n"
@@ -26,19 +30,19 @@ class GraphicsHandler:
               "       -   Play [P] \n"
               "       -   Exit [E] \n")
 
-    def display_status(self, gs: GameState):
+    def display_status(self, player1: Player, player2: Player, current_turn):
         # Game title
         print("  ╔═════════════════════════════════════════════════════════════════════════════════════════════╗\n"
               "  ║                                           UU-Game                                           ║\n"
               "  ╚═════════════════════════════════════════════════════════════════════════════════════════════╝\n")
         # Player status
         print("   Round %d ( remaining turns: %d )" %
-              (gs.current_turn, 250-gs.current_turn))
+              (current_turn, 250-current_turn))
         print("  ┌───────────────────────┬────────────────────┐\n"
               "  │ %-15s( %s ) │   %2d pieces left   │\n"
               "  ├───────────────────────┼────────────────────┤\n"
               "  │ %-15s( %s ) │   %2d pieces left   │\n"
-              "  └───────────────────────┴────────────────────┘\n" % (gs.player1.name, color_to_ascii(gs.player1.color), gs.player1.coins_left_to_place, gs.player2.name, color_to_ascii(gs.player2.color), gs.player2.coins_left_to_place))
+              "  └───────────────────────┴────────────────────┘\n" % (player1.name, color_to_ascii(player1.color), player1.coins_left_to_place, player2.name, color_to_ascii(player2.color), player2.coins_left_to_place))
 
     def display_game(self, board: [Color]):
         # NOTE: Modifies board variable destructively (contents change outside function)
@@ -81,6 +85,11 @@ class GraphicsHandler:
                   board[15], board[16], board[17],
                   board[18], board[19], board[20],
                   board[21], board[22], board[23]))
+
+    def display_messages(self):
+        for message in self._messages:
+            print(message)
+        self._messages = []
 
     def display_winner(self, player: Player):
         print(
