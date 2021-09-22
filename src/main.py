@@ -123,6 +123,8 @@ def main():
                     response = Input.get_input(
                         player_str + f"[place piece at] ")
 
+                    # TODO handle surrender (or quit?) command
+
                     # TODO validate the response (better)
                     if not response.isdigit():
                         continue
