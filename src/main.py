@@ -24,7 +24,7 @@ board_connections = list({
     11: [4, 10, 12, 19],
     12: [11, 7, 16],
     13: [9, 14, 18],
-    14: [13, 16, 15, 21],
+    14: [13, 6, 15, 21],
     15: [14, 3, 24],
     16: [12, 17],
     17: [16, 18, 20],
@@ -155,14 +155,14 @@ def main():
                         player_str + f"[from] [to] ")
 
                     # # TODO validate the response (better)
-                    # if len(response) != 2:
-                    #     continue
-                    # if not response[0].isdigit() or not response[1].isdigit():
-                    #     continue
+                    if len(response) != 2:
+                        continue
+                    if not response[0].isdigit() or not response[1].isdigit():
+                        continue
                     origin = int(response[0]) - 1
                     to = int(response[1]) - 1
-                    # if not (0 <= origin < num_nodes and 0 <= to < num_nodes):
-                    #     continue
+                    if not (0 <= origin < num_nodes and 0 <= to < num_nodes):
+                        continue
 
                     cmd = commands.Move(origin, to)
                     state.try_command(cmd, gh)
