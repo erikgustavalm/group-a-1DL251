@@ -75,6 +75,9 @@ def main():
     # print('\033[36mTest\033[0m')
     # return
 
+    # TODO move the loop into an event loop class/function
+    # so it's easier for others to integrate our code with theirs
+
     Input = input_handler.InputHandler()
     gh = graphics.GraphicsHandler()
 

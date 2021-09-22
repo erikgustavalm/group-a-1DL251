@@ -198,6 +198,9 @@ class GameState:
         remove = self.board.nodes[cmd_remove.at]
 
         if remove.color == Color.Empty:
+            # TODO add GraphicsHandler argument so we can add specific invalid messages
+            # instead of the generic "you made an invalid move"
+            # like: gh.add_message("You tried to remove a piece from an empty node")
             return State.Invalid
         if remove.color == self.current_player.color:
             return State.Invalid
