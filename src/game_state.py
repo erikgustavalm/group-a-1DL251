@@ -103,6 +103,9 @@ class GameState:
         # does player 1 have to remove a piece from player 2, allowing player 2
         # to keep playing, or does the game end as soon as player 2 can't make a move?
 
+        # Hasnain said player 2 hasn't lost in this case,
+        # so double check that's how it works currently
+
     # ??? try_move was split in two, try_place_piece is for the first phase
     # when you only place down pieces, since the Move command takes an origin
     # We could instead use one function and ignore the origin for the first phase

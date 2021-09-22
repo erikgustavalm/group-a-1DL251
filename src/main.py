@@ -8,6 +8,7 @@ from game_state import NextState
 import commands
 
 from color import Color
+from state import State
 
 board_connections = list({
     1: [2, 4, 10],
@@ -103,11 +104,21 @@ def main():
             state = game_state.GameState(
                 p1_name, p2_name, (num_nodes, board_connections, mills))
 
+            b = None
+
             game_is_running = True
             while game_is_running:
                 gh.display_status(state)
                 gh.display_game([node.color for node in state.board.nodes])
                 player_str = f"   Player {state.current_player.name}:  "
+
+                if b == State.Invalid:
+                    print("attempt to place piece was invalid")
+                elif b == State.CreatedMill:
+                    print("your placement created a mill")
+                elif b == State.Valid:
+                    print(f"your piece was placed on node {to+1}")
+                b = None
 
                 next = state.next()
                 # TODO maybe? Move the get input calls to the commands class
@@ -116,29 +127,33 @@ def main():
                     response = Input.get_input(
                         player_str + f"[place piece at]")
 
-                    # TODO validate the response (better)
-                    if len(response) != 1:
-                        continue
-                    if not response.isdigit():
-                        continue
+                    # # TODO validate the response (better)
+                    # if len(response) != 1:
+                    #     continue
+                    # if not response.isdigit():
+                    #     continue
                     to = int(response) - 1
-                    if not (0 <= to < num_nodes):
-                        continue
+                    # if not (0 <= to < num_nodes):
+                    #     continue
+
+                    ## TODO the validation did not work.
 
                     cmd = commands.Place(to)
-                    state.try_place_piece(cmd)
+                    b = state.try_place_piece(cmd)
+                    # TODO(Hasnain) Add small message whether move was succesful or not
+                    # TODO this should happen after printing a new screen, not before.
                 elif next == NextState.Remove:
                     response = Input.get_input(
                         player_str + f"[node to remove]")
 
-                    # TODO validate the response (better)
-                    if len(response) != 1:
-                        continue
-                    if not response.isdigit():
-                        continue
+                    # # TODO validate the response (better)
+                    # if len(response) != 1:
+                    #     continue
+                    # if not response.isdigit():
+                    #     continue
                     to = int(response) - 1
-                    if not (0 <= to < num_nodes):
-                        continue
+                    # if not (0 <= to < num_nodes):
+                    #     continue
 
                     cmd = commands.RemoveAfterMill(int(response)-1)
                     state.try_remove(cmd)
@@ -146,15 +161,15 @@ def main():
                     response = Input.get_separated_input(
                         player_str + f"[from] [to]")
 
-                    # TODO validate the response (better)
-                    if len(response) != 2:
-                        continue
-                    if not response[0].isdigit() or not response[1].isdigit():
-                        continue
+                    # # TODO validate the response (better)
+                    # if len(response) != 2:
+                    #     continue
+                    # if not response[0].isdigit() or not response[1].isdigit():
+                    #     continue
                     origin = int(response[0]) - 1
                     to = int(response[1]) - 1
-                    if not (0 <= origin < num_nodes and 0 <= to < num_nodes):
-                        continue
+                    # if not (0 <= origin < num_nodes and 0 <= to < num_nodes):
+                    #     continue
 
                     cmd = commands.Move(origin, to)
                     state.try_move(cmd)
