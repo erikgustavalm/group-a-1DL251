@@ -141,7 +141,7 @@ def main():
                     response = Input.get_input(
                         player_str + f"[node to remove] ")
 
-                    # # TODO validate the response (better)
+                    # TODO validate the response (better)
                     if not response.isdigit():
                         continue
                     at = int(response) - 1
@@ -154,7 +154,7 @@ def main():
                     response = Input.get_separated_input(
                         player_str + f"[from] [to] ")
 
-                    # # TODO validate the response (better)
+                    # TODO validate the response (better)
                     if len(response) != 2:
                         continue
                     if not response[0].isdigit() or not response[1].isdigit():
