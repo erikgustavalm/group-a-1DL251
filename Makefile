@@ -2,7 +2,7 @@
 # To run project, go ahead and run `make run`, and if your OS is windows, you run win `make run OS=win`
 OS := unix
 
-BIN := bin/main.py
+BIN := src/main.py
 TESTS := test/tests.py
 
 unixpy := python3

@@ -1,8 +1,14 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from color import Color
+#from color import Color
+from enum import Enum,auto
 
+class CommandType(Enum):
+    Move = auto()
+    Place = auto()
+    Remove = auto()
+    Lost = auto()
 
 @dataclass
 class Command():
@@ -20,7 +26,7 @@ class Quit(Command):
 
 
 @dataclass
-class RemoveAfterMill(Command):
+class Remove(Command):
     at: int
 
 

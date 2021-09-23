@@ -1,14 +1,9 @@
-import os
-import random
-
 import graphics
 import input_handler
 import game_state
-from game_state import NextState
 import commands
+from commands import CommandType
 
-from color import Color
-from state import State
 
 board_connections = list({
     1: [2, 4, 10],
@@ -61,13 +56,6 @@ mills = [
 mills = [[x - 1 for x in l] for l in mills]
 
 
-def clear():
-    return
-    # if os.name == "posix":  # linux or mac
-    #     os.system('clear')
-    # elif os.name == "nt":  # windows
-    #     os.system('cls')
-
 
 def main():
     # vt100 escape codes test, if "Test" is printed in blue it works
@@ -94,19 +82,20 @@ def main():
                     print("\n   >>> Exit Game\n")
                     game_start = False
                 elif sure_exit == 'N':
-                    clear()
                     break
                 else:
                     print("   Invalid input !\n")
                     continue
         elif option == 'P':
-            clear()
-            print("   Please input player name (Ｗithin 15 words):\n"
-                  "   -------------------------------------------")
-            # TODO check that the input is not empty, retry until non-empty
-            # TODO (?) check that p1_name is not the same as p2_name, retry until different
-            p1_name = Input.get_input("   Player 1:  ")
-            p2_name = Input.get_input("   Player 2:  ")
+            print("   Please input player name (Ｗithin 15 characters):\n"
+                  "   ------------------------------------------------")
+
+            p1_name = Input.get_input("   Player 1:  ")[:15]
+            p2_name = p1_name
+            while p2_name == p1_name:
+                p2_name = Input.get_input("   Player 2:  ")[:15]
+                if p2_name == p1_name:
+                    print("Can't have the same name as Player 1")
 
             num_nodes = len(board_connections)
             state = game_state.GameState(
@@ -119,62 +108,26 @@ def main():
                 gh.display_game([node.color for node in state.board.nodes])
                 gh.display_messages()
 
-                player_str = f"   Player {state.current_player.name}:  "
+                print(f"Player {state.current_player.name}, your turn:")
 
-                next = state.next()
-                if next == NextState.Place:
-                    response = Input.get_input(
-                        player_str + f"[place piece at] ")
-
-                    # TODO handle surrender (or quit?) command
-
-                    # TODO validate the response (better)
-                    if not response.isdigit():
-                        continue
-                    to = int(response) - 1
-                    if not (0 <= to < num_nodes):
-                        continue
-
-                    cmd = commands.Place(to)
-                    state.try_command(cmd, gh)
-                elif next == NextState.Remove:
-                    response = Input.get_input(
-                        player_str + f"[node to remove] ")
-
-                    # TODO validate the response (better)
-                    if not response.isdigit():
-                        continue
-                    at = int(response) - 1
-                    if not (0 <= at < num_nodes):
-                        continue
-
-                    cmd = commands.RemoveAfterMill(at)
-                    state.try_command(cmd, gh)
-                elif next == NextState.Move:
-                    response = Input.get_separated_input(
-                        player_str + f"[from] [to] ")
-
-                    # TODO validate the response (better)
-                    if len(response) != 2:
-                        continue
-                    if not response[0].isdigit() or not response[1].isdigit():
-                        continue
-                    origin = int(response[0]) - 1
-                    to = int(response[1]) - 1
-                    if not (0 <= origin < num_nodes and 0 <= to < num_nodes):
-                        continue
-
-                    cmd = commands.Move(origin, to)
-                    state.try_command(cmd, gh)
-
-                elif next == NextState.Lost:
+                current_state = state.next()
+                if current_state == CommandType.Lost:
                     print(f"Player {state.get_opponent().name} won!")
                     game_is_running = False
-                else:
-                    assert False, "Unhandled state"
+                    continue
+
+                cmd = Input.get_command(current_state)
+
+                if isinstance(cmd, commands.Quit):
+                    return
+                elif isinstance(cmd, commands.Surrender):
+                    print(f"{state.current_player.name} surrendered the game!")
+                    game_is_running = False
+                    continue
+
+                state.try_command(cmd, gh)
         else:
             print("  Invalid input !\n ")
-            continue
 
 
 if __name__ == "__main__":
