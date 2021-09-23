@@ -7,17 +7,10 @@ from state import State
 from board import Board
 from player import Player
 from dataclasses import dataclass
-from commands import Command, Move, Place, RemoveAfterMill
+from commands import Command, Move, Place, Remove, CommandType
 from graphics import GraphicsHandler
 
 from enum import Enum, auto
-
-
-class NextState(Enum):
-    Remove = auto()
-    Place = auto()
-    Lost = auto()
-    Move = auto()
 
 
 @dataclass
@@ -80,16 +73,16 @@ class GameState:
             return True
         return False
 
-    def next(self) -> NextState:
+    def next(self) -> CommandType:
         if self.has_lost():
-            return NextState.Lost
+            return CommandType.Lost
         if self._did_create_mill:
-            return NextState.Remove
+            return CommandType.Remove
 
         phase = self.current_phase(self.current_player)
         if phase == Phase.One:
-            return NextState.Place
-        return NextState.Move
+            return CommandType.Place
+        return CommandType.Move
 
     def current_phase(self, player: Player) -> Phase:
         if player.coins_left_to_place > 0:
@@ -132,7 +125,7 @@ class GameState:
                     f"Your piece was moved from node {cmd.origin+1} to node {cmd.to+1}")
             else:
                 gh.add_message("Your command was invalid!")
-        elif isinstance(cmd, RemoveAfterMill):
+        elif isinstance(cmd, Remove):
             res = self._try_remove(cmd)
             if res == State.Valid:
                 gh.add_message(
@@ -194,7 +187,7 @@ class GameState:
         assert False, "Unknown phase"
 
     # NOTE renamed is_legal_remove to try_remove
-    def _try_remove(self, cmd_remove: RemoveAfterMill) -> State:
+    def _try_remove(self, cmd_remove: Remove) -> State:
         remove = self.board.nodes[cmd_remove.at]
 
         if remove.color == Color.Empty:
