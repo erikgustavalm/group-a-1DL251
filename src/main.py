@@ -104,15 +104,16 @@ def main():
             game_is_running = True
             while game_is_running:
                 gh.display_status(
-                    state.player1, state.player2, state.current_turn)
+                    state.player1, state.player2, state.current_turn, state.current_player)
                 gh.display_game([node.color for node in state.board.nodes])
                 gh.display_messages()
 
-                print(f"Player {state.current_player.name}, your turn:")
+                print(f"Player {state.current_player.name}( {graphics.color_to_ascii(state.current_player.color)} ): It's your turn now ")
 
                 current_state = state.next()
                 if current_state == CommandType.Lost:
-                    print(f"Player {state.get_opponent().name} won!")
+                    #print(f"Player {state.get_opponent().name} ( {state.get_opponent().color} )won!")
+                    gh.display_winner(state.get_opponent())
                     game_is_running = False
                     continue
 
@@ -121,7 +122,7 @@ def main():
                 if isinstance(cmd, commands.Quit):
                     return
                 elif isinstance(cmd, commands.Surrender):
-                    print(f"{state.current_player.name} surrendered the game!")
+                    print(f"{state.current_player.name}( {graphics.color_to_ascii(state.current_player.color)} ): surrendered the game!")
                     game_is_running = False
                     continue
 
