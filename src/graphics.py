@@ -30,19 +30,28 @@ class GraphicsHandler:
               "       -   Play [P] \n"
               "       -   Exit [E] \n")
 
-    def display_status(self, player1: Player, player2: Player, current_turn):
+    def display_status(self, player1: Player, player2: Player, current_turn, current_player: Player):
+        if current_player.color == player1.color:
+            p1_turn = " ──>"
+            p2_turn = "    "
+        else:
+            p1_turn = "    "
+            p2_turn = " ──>"
+        
         # Game title
         print("  ╔═════════════════════════════════════════════════════════════════════════════════════════════╗\n"
               "  ║                                           UU-Game                                           ║\n"
               "  ╚═════════════════════════════════════════════════════════════════════════════════════════════╝\n")
         # Player status
-        print("   Round %d ( remaining turns: %d )" %
+        print("   Round %d ( Remaining turns: %d )" %
               (current_turn, 250-current_turn))
-        print("  ┌───────────────────────┬────────────────────┐\n"
-              "  │ %-15s( %s ) │   %2d pieces left   │\n"
-              "  ├───────────────────────┼────────────────────┤\n"
-              "  │ %-15s( %s ) │   %2d pieces left   │\n"
-              "  └───────────────────────┴────────────────────┘\n" % (player1.name, color_to_ascii(player1.color), player1.coins_left_to_place, player2.name, color_to_ascii(player2.color), player2.coins_left_to_place))
+        
+        
+        print("        ┌───────────────────────┬────────────────────┐\n"
+              "  %s  │ %-15s( %s ) │   %2d pieces left   │\n"
+              "        ├───────────────────────┼────────────────────┤\n"
+              "  %s  │ %-15s( %s ) │   %2d pieces left   │\n"
+              "        └───────────────────────┴────────────────────┘\n" % (p1_turn, player1.name, color_to_ascii(player1.color), player1.coins_left_to_place, p2_turn, player2.name, color_to_ascii(player2.color), player2.coins_left_to_place))
 
     def display_game(self, board: [Color]):
         # NOTE: Modifies board variable destructively (contents change outside function)
@@ -95,7 +104,7 @@ class GraphicsHandler:
         print(
             "-----------------------------------------\n"
             "|                                       |\n"
-            "|   {} has won the game!          |\n"
+            "|   %-15s (%2s) has won the game!       |\n"
             "|                                       |\n"
-            "|          Play again? y/n              |\n"
-            "‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾\n".format(player.name))
+            "|                                       |\n"
+            "‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾\n" % ( player.name, color_to_ascii(player.color) ) )
