@@ -109,38 +109,35 @@ class GameState:
     def try_command(self, cmd: Command, gh: GraphicsHandler) -> State:
         res = None
         if isinstance(cmd, Place):
-            res = self._try_place_piece(cmd)
+            res = self._try_place_piece(cmd, gh)
             if res == State.CreatedMill:
-                gh.add_message("you got a mill!")
+                gh.add_message("You got a mill!")
             elif res == State.Valid:
                 gh.add_message(f"Your piece was placed on node {cmd.to+1}")
-            else:
-                gh.add_message("Your command was invalid!")
         elif isinstance(cmd, Move):
-            res = self._try_move(cmd)
+            res = self._try_move(cmd, gh)
             if res == State.CreatedMill:
-                gh.add_message("you got a mill!")
+                gh.add_message("You got a mill!")
             elif res == State.Valid:
                 gh.add_message(
                     f"Your piece was moved from node {cmd.origin+1} to node {cmd.to+1}")
-            else:
-                gh.add_message("Your command was invalid!")
         elif isinstance(cmd, Remove):
-            res = self._try_remove(cmd)
+            res = self._try_remove(cmd, gh)
             if res == State.Valid:
                 gh.add_message(
                     f"You removed the opponent's piece at node {cmd.at+1}")
-            else:
-                gh.add_message("Your command was invalid!")
         else:
             assert False, f"Invalid command: {cmd}"
 
-    def _try_place_piece(self, to: Place) -> State:
+    def _try_place_piece(self, to: Place, gh: GraphicsHandler) -> State:
         # Can only place new pieces in phase one
         if self.current_phase(self.current_player) != Phase.One:
+            # TODO should be assert False?
+            gh.add_message("Invalid: Can only place new pieces in phase one")
             return State.Invalid
         # and only at empty spots
         if self.board.nodes[to.to].color != Color.Empty:
+            gh.add_message("Invalid: Can't place piece on occupied node.")
             return State.Invalid
 
         if self.board.place(to.to, self.current_player):
@@ -151,20 +148,24 @@ class GameState:
         return State.Valid
 
     # NOTE renamed is_legal_move to try_move
-    def _try_move(self, move: Move) -> State:
+    def _try_move(self, move: Move, gh: GraphicsHandler) -> State:
         piece_origin = self.board.nodes[move.origin]
         piece_to = self.board.nodes[move.to]
 
         # State 1 is handled by try_place_piece
         if self.current_phase(self.current_player) == Phase.One:
+            gh.add_message("Invalid: Can't move piece if not in phase 1.")
+            # TODO should be assert false?
             return State.Invalid
 
         # Can't move to a spot already occupied by our color
         if piece_to.color == self.current_player.color:
+            gh.add_message("Invalid: Can't move to already occupied node.")
             return State.Invalid
 
         # can't move a piece that isn't ours
         if piece_origin.color != self.current_player.color:
+            gh.add_message("Invalid: Can't move from node not occupied by one of our pieces.")
             return State.Invalid
 
         if self.current_phase(self.current_player) == Phase.Two:
@@ -176,6 +177,7 @@ class GameState:
                     return State.CreatedMill
                 self._end_turn()
                 return State.Valid
+            gh.add_message("Invalid: Can't move piece to node that's already occupied.")
             return State.Invalid
         elif self.current_phase(self.current_player) == Phase.Three:
             # can move anywhere
@@ -187,15 +189,15 @@ class GameState:
         assert False, "Unknown phase"
 
     # NOTE renamed is_legal_remove to try_remove
-    def _try_remove(self, cmd_remove: Remove) -> State:
+    def _try_remove(self, cmd_remove: Remove, gh: GraphicsHandler) -> State:
+
         remove = self.board.nodes[cmd_remove.at]
 
         if remove.color == Color.Empty:
-            # TODO add GraphicsHandler argument so we can add specific invalid messages
-            # instead of the generic "you made an invalid move"
-            # like: gh.add_message("You tried to remove a piece from an empty node")
+            gh.add_message("Invalid: Can't remove piece from an empty node.")
             return State.Invalid
         if remove.color == self.current_player.color:
+            gh.add_message("Invalid: Can't remove our own pieces.")
             return State.Invalid
 
         # Is the piece we want to remove part of a mill?
@@ -218,6 +220,7 @@ class GameState:
                 continue
 
             if not self.board.is_part_of_mill(idx):
+                gh.add_message("Invalid: Can't remove piece from mill when pieces not part of mills exist.")
                 return State.Invalid
 
         # We only found pieces that were part of mills, so it's a legal move
