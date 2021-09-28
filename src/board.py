@@ -34,6 +34,9 @@ class Board:
 
         self.possible_mills = _create_possible_mills(nodes, mills)
 
+    def num_nodes(self) -> int:
+        return len(self.nodes)
+
     def is_part_of_mill(self, node_idx: int) -> bool:
         for mills in self.possible_mills[node_idx]:
             for node in mills:

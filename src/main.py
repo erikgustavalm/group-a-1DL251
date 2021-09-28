@@ -56,7 +56,7 @@ mills = [
 mills = [[x - 1 for x in l] for l in mills]
 
 
-def game_loop(input_handler, graphics_handler):
+def game_loop(input_handler: input_handler.InputHandler, graphics_handler: graphics.GraphicsHandler):
     print("   Please input player name (Ｗithin 15 characters):\n"
           "   ------------------------------------------------")
 
@@ -78,7 +78,10 @@ def game_loop(input_handler, graphics_handler):
 
         current_state = state.next()
         if current_state == CommandType.Lost:
-            print(f"Player {state.get_opponent().name} won!")
+            graphics_handler.display_winner(state.get_opponent())
+            return
+        elif current_state == CommandType.Draw:
+            graphics_handler.display_draw()
             return
 
         print(f"Player {state.current_player.name} ({graphics.color_to_ascii(state.current_player.color)}): It's your turn now ")

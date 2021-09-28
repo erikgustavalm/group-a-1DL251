@@ -9,6 +9,7 @@ class CommandType(Enum):
     Place = auto()
     Remove = auto()
     Lost = auto()
+    Draw = auto()
 
 @dataclass
 class Command():
