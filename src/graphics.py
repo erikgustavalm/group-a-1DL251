@@ -101,20 +101,20 @@ class GraphicsHandler:
         self._messages = []
 
     def display_winner(self, player: Player):
-        print("　　　     　 　　^_________________________________________________^\n"
-              "　　　         /                                                     \\\n"
-              " 　　         │　　　　                                          　    │\n"
-              " 　　         │       %-15s ( %s ) has won the game~       │ \n"
-              " 　　         │　　　 　                                         　    │\n"
-              " 　　         │　　　 　                                         　    │\n"
-              "　　　     　  > _＿＿＿＿＿＿＿＿__＿＿＿＿＿___＿＿＿__________＿＿＿____ <\n"
-              "　　   　　　 （\n"
-              "　   　　　　　）\n"
-              "　 　　.∧＿∧.(\n"
-              "　 　(´・ω・ n\n"
-              "　 　o　　 , /\n"
-              "　 　O＿ . /                                       Design by Group A\n"
-              "　 　　.( /     *   *   *   *   *   *   *   *   *   *   *   *   *   *\n"
+        print("               ^ _______________________________________________ ^\n"
+              "              /                                                   \\\n"
+              "             │                                                     │\n"
+              "             │       %-15s ( %s ) has won the game~      │ \n"
+              "             │                                                     │\n"
+              "             │                                                     │\n"
+              "             └─────────────────────────────────────────────────────┘\n"
+              "            （\n"
+              "             ）\n"
+              "      .∧＿∧.(\n"
+              "     (´・ω・ n\n"
+              "     o　　 , /\n"
+              "     O＿ . /                                       Design by Group A\n"
+              "       .( /     *   *   *   *   *   *   *   *   *   *   *   *   *   *\n"
               "\n" % ( player.name, color_to_ascii(player.color) ) )
 
     
