@@ -1,9 +1,6 @@
 from color import Color
 
 from player import Player
-# from game_state import GameState
-
-from dataclasses import dataclass
 
 
 def color_to_ascii(c: Color):
@@ -28,7 +25,7 @@ class GraphicsHandler:
 
         print("       >    MENU    < \n\n"
               "       -   Play [P] \n"
-              "       -   Exit [E] \n")
+              "       -   Quit [Q] \n")
 
     def display_status(self, player1: Player, player2: Player, current_turn):
         # Game title
