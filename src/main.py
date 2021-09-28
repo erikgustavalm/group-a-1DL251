@@ -81,13 +81,13 @@ def game_loop(input_handler, graphics_handler):
             print(f"Player {state.get_opponent().name} won!")
             return
 
-        print(f"Player {state.current_player.name}, your turn:")
+        print(f"Player {state.current_player.name} ({graphics.color_to_ascii(state.current_player.color)}): It's your turn now ")
         cmd = input_handler.get_command(current_state)
 
         if isinstance(cmd, commands.Quit):
             return
         elif isinstance(cmd, commands.Surrender):
-            print(f"{state.current_player.name} surrendered the game!")
+            print(f"{state.current_player.name} ({graphics.color_to_ascii(state.current_player.color)}): surrendered the game!")
             return
 
         state.try_command(cmd, graphics_handler)
