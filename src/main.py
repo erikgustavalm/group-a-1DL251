@@ -72,8 +72,10 @@ def game_loop(input_handler, graphics_handler):
                                  (num_nodes, board_connections, mills))
 
     while True:
-        graphics_handler.display_status(state.player1, state.player2, state.current_turn)
-        graphics_handler.display_game([node.color for node in state.board.nodes])
+        graphics_handler.display_status(
+            state.player1, state.player2, state.current_turn)
+        graphics_handler.display_game(
+            [node.color for node in state.board.nodes])
         graphics_handler.display_messages()
 
         current_state = state.next()
@@ -94,14 +96,6 @@ def game_loop(input_handler, graphics_handler):
 
 
 def main():
-    # vt100 escape codes test, if "Test" is printed in blue it works
-    # os.system(" ")
-    # print('\033[36mTest\033[0m')
-    # return
-
-    # TODO move the loop into an event loop class/function
-    # so it's easier for others to integrate our code with theirs
-
     ihandler = input_handler.InputHandler()
     ghandler = graphics.GraphicsHandler()
 

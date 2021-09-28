@@ -36,8 +36,11 @@ class GameState:
         else:
             self.current_player = self.player1
 
-    # board: (num_nodes, adjacent_nodes, mills)
-    def __init__(self, player1: str, player2: str, board: (int, [[int]], [[int]])):
+    def __init__(self,
+                 player1: str,
+                 player2: str,
+                 # board: (num_nodes, adjacent_nodes, mills)
+                 board: (int, [[int]], [[int]])):
         self.player1 = Player(player1, Color.Empty, 11)
         self.player2 = Player(player2, Color.Empty, 11)
         self.board = Board(board[0], board[1], board[2])
@@ -91,21 +94,6 @@ class GameState:
             return Phase.Two
         return Phase.Three
 
-        # TODO edge-case:
-        # What happens if player 1 gets a mill that at the same time
-        # blocks player 2 from making any move at all
-        # does player 1 have to remove a piece from player 2, allowing player 2
-        # to keep playing, or does the game end as soon as player 2 can't make a move?
-
-        # Hasnain said player 2 hasn't lost in this case,
-        # so double check that's how it works currently
-
-    # ??? try_move was split in two, try_place_piece is for the first phase
-    # when you only place down pieces, since the Move command takes an origin
-    # We could instead use one function and ignore the origin for the first phase
-    # OR it could be one function that takes a Command
-    # and then choose what to do based on the type of the command
-
     def try_command(self, cmd: Command, gh: GraphicsHandler) -> State:
         res = None
         if isinstance(cmd, Place):
@@ -132,9 +120,7 @@ class GameState:
     def _try_place_piece(self, to: Place, gh: GraphicsHandler) -> State:
         # Can only place new pieces in phase one
         if self.current_phase(self.current_player) != Phase.One:
-            # TODO should be assert False?
-            gh.add_message("Invalid: Can only place new pieces in phase one")
-            return State.Invalid
+            assert False, "Bug: Can only place new pieces in phase one"
         # and only at empty spots
         if self.board.nodes[to.to].color != Color.Empty:
             gh.add_message("Invalid: Can't place piece on occupied node.")
@@ -147,16 +133,13 @@ class GameState:
         self._end_turn()
         return State.Valid
 
-    # NOTE renamed is_legal_move to try_move
     def _try_move(self, move: Move, gh: GraphicsHandler) -> State:
         piece_origin = self.board.nodes[move.origin]
         piece_to = self.board.nodes[move.to]
 
         # State 1 is handled by try_place_piece
         if self.current_phase(self.current_player) == Phase.One:
-            gh.add_message("Invalid: Can't move piece if not in phase 1.")
-            # TODO should be assert false?
-            return State.Invalid
+            assert False, "Bug: Can't move piece if not in phase 1."
 
         # Can't move to a spot already occupied by our color
         if piece_to.color == self.current_player.color:
@@ -165,7 +148,8 @@ class GameState:
 
         # can't move a piece that isn't ours
         if piece_origin.color != self.current_player.color:
-            gh.add_message("Invalid: Can't move from node not occupied by one of our pieces.")
+            gh.add_message(
+                "Invalid: Can't move from node not occupied by one of our pieces.")
             return State.Invalid
 
         if self.current_phase(self.current_player) == Phase.Two:
@@ -177,7 +161,8 @@ class GameState:
                     return State.CreatedMill
                 self._end_turn()
                 return State.Valid
-            gh.add_message("Invalid: Can't move piece to node that's already occupied.")
+            gh.add_message(
+                "Invalid: Can't move piece to node that's already occupied.")
             return State.Invalid
         elif self.current_phase(self.current_player) == Phase.Three:
             # can move anywhere
@@ -188,7 +173,6 @@ class GameState:
             return State.Valid
         assert False, "Unknown phase"
 
-    # NOTE renamed is_legal_remove to try_remove
     def _try_remove(self, cmd_remove: Remove, gh: GraphicsHandler) -> State:
 
         remove = self.board.nodes[cmd_remove.at]
@@ -214,13 +198,13 @@ class GameState:
         # as the piece we're going to remove, figure out if
         # it's NOT part of a mill. If it isn't, the move is not legal.
 
-        # NOTE Haven't thought this through very deeply, might be incorrect
         for idx, check in enumerate(self.board.nodes):
             if remove.color != check.color:
                 continue
 
             if not self.board.is_part_of_mill(idx):
-                gh.add_message("Invalid: Can't remove piece from mill when pieces not part of mills exist.")
+                gh.add_message(
+                    "Invalid: Can't remove piece from mill when pieces not part of mills exist.")
                 return State.Invalid
 
         # We only found pieces that were part of mills, so it's a legal move
@@ -233,7 +217,7 @@ class GameState:
             return self.board.num_black
         elif color == Color.White:
             return self.board.num_white
-        assert False, "Unknown color (or empty)"
+        assert False, "Bug: Unknown color (or empty)"
 
     def update_mills(self) -> bool:
         pass
