@@ -83,13 +83,6 @@ class GameState:
         if (self.player1.pieces + self.player2.pieces == self.board.num_nodes()):
             return True
 
-        # If there's no move possible for either player, in phase 2, it's a draw.
-        if (self.current_phase(self.player1) == Phase.Two
-            and not self.can_make_adjacent_move(self.player1)
-            and self.current_phase(self.player2) == Phase.Two
-                and not self.can_make_adjacent_move(self.player2)):
-            return True
-
         return False
 
     def next(self) -> CommandType:
