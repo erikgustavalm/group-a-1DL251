@@ -80,6 +80,9 @@ def game_loop(input_handler, graphics_handler):
         if current_state == CommandType.Lost:
             print(f"Player {state.get_opponent().name} won!")
             return
+        elif current_state == CommandType.Draw:
+            print("The game resulted in a draw!")
+            return
 
         print(f"Player {state.current_player.name}, your turn:")
         cmd = input_handler.get_command(current_state)

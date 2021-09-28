@@ -20,6 +20,7 @@ class GameState:
     board: Board
     current_turn: int
     current_player: Player
+    max_turns: int = 250
     _did_create_mill: bool = False
 
     def get_opponent(self) -> Player:
@@ -73,7 +74,27 @@ class GameState:
             return True
         return False
 
+    def is_draw(self) -> bool:
+        # If we've exceeded the maximum number of turns, it's a draw.
+        if self.current_turn > self.max_turns:
+            return True
+
+        # If the board is full, neither player can move, so it's a draw.
+        if (self.player1.pieces + self.player2.pieces == self.board.num_nodes()):
+            return True
+
+        # If there's no move possible for either player, in phase 2, it's a draw.
+        if (self.current_phase(self.player1) == Phase.Two
+            and not self.can_make_adjacent_move(self.player1)
+            and self.current_phase(self.player2) == Phase.Two
+                and not self.can_make_adjacent_move(self.player2)):
+            return True
+
+        return False
+
     def next(self) -> CommandType:
+        if self.is_draw():
+            return CommandType.Draw
         if self.has_lost():
             return CommandType.Lost
         if self._did_create_mill:
