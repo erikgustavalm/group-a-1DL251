@@ -3,8 +3,6 @@ from color import Color
 from player import Player
 # from game_state import GameState
 
-from dataclasses import dataclass
-
 
 def color_to_ascii(c: Color):
     if c == Color.Black:
@@ -29,7 +27,13 @@ class GraphicsHandler:
         print("       >    MENU    < \n\n"
               "       -   Play [P] \n"
               "       -   Exit [E] \n")
-
+    
+    def display_title(self):
+        # Game title
+        print("  ╔═══════════════════════════════════════════════════════════════════════════════════════════════════════╗\n"
+              "  ║                                                UU-Game                                                ║\n"
+              "  ╚═══════════════════════════════════════════════════════════════════════════════════════════════════════╝\n")
+    
     def display_status(self, player1: Player, player2: Player, current_turn, current_player: Player):
         if current_player.color == player1.color:
             p1_turn = " ──>"
@@ -38,10 +42,6 @@ class GraphicsHandler:
             p1_turn = "    "
             p2_turn = " ──>"
         
-        # Game title
-        print("  ╔═════════════════════════════════════════════════════════════════════════════════════════════╗\n"
-              "  ║                                           UU-Game                                           ║\n"
-              "  ╚═════════════════════════════════════════════════════════════════════════════════════════════╝\n")
         # Player status
         print("   Round %d ( Remaining turns: %d )" %
               (current_turn, 250-current_turn))
@@ -101,10 +101,31 @@ class GraphicsHandler:
         self._messages = []
 
     def display_winner(self, player: Player):
-        print(
-            "-----------------------------------------\n"
-            "|                                       |\n"
-            "|   %-15s (%2s) has won the game!       |\n"
-            "|                                       |\n"
-            "|                                       |\n"
-            "‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾\n" % ( player.name, color_to_ascii(player.color) ) )
+        print("　　　     　 　　^_________________________________________________^\n"
+              "　　　         /                                                     \\\n"
+              " 　　         │　　　　                                          　    │\n"
+              " 　　         │       %-15s ( %s ) has won the game~       │ \n"
+              " 　　         │　　　 　                                         　    │\n"
+              " 　　         │　　　 　                                         　    │\n"
+              "　　　     　  > _＿＿＿＿＿＿＿＿__＿＿＿＿＿___＿＿＿__________＿＿＿____ <\n"
+              "　　   　　　 （\n"
+              "　   　　　　　）\n"
+              "　 　　.∧＿∧.(\n"
+              "　 　(´・ω・ n\n"
+              "　 　o　　 , /\n"
+              "　 　O＿ . /                                       Design by Group A\n"
+              "　 　　.( /     *   *   *   *   *   *   *   *   *   *   *   *   *   *\n"
+              "\n" % ( player.name, color_to_ascii(player.color) ) )
+
+    
+    def display_draw(self):
+        print("             ○──────────────────────────────────┐\n"
+              "             │             D R A W              │\n"
+              "             │                                  │\n"
+              "             │        It's over 250 turns.      │\n"
+              "             │──────────────────────────────────┘\n"
+              "    ^────^   │\n"
+              "   ( . w . ) │\n"
+              "   <　     >０\n"
+              "    │     │\n"
+              "    U ─── U\n")
