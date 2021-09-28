@@ -72,7 +72,7 @@ def game_loop(input_handler, graphics_handler):
                                  (num_nodes, board_connections, mills))
 
     while True:
-        graphics_handler.display_status(state.player1, state.player2, state.current_turn)
+        graphics_handler.display_status(state.player1, state.player2, state.current_turn, state.current_player)
         graphics_handler.display_game([node.color for node in state.board.nodes])
         graphics_handler.display_messages()
 
