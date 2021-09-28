@@ -71,8 +71,7 @@ def game_loop(input_handler, graphics_handler):
     state = game_state.GameState(p1_name, p2_name,
                                  (num_nodes, board_connections, mills))
 
-    game_is_running = True
-    while game_is_running:
+    while True:
         graphics_handler.display_status(state.player1, state.player2, state.current_turn)
         graphics_handler.display_game([node.color for node in state.board.nodes])
         graphics_handler.display_messages()
@@ -80,8 +79,7 @@ def game_loop(input_handler, graphics_handler):
         current_state = state.next()
         if current_state == CommandType.Lost:
             print(f"Player {state.get_opponent().name} won!")
-            game_is_running = False
-            continue
+            return
 
         print(f"Player {state.current_player.name}, your turn:")
         cmd = input_handler.get_command(current_state)
@@ -90,8 +88,7 @@ def game_loop(input_handler, graphics_handler):
             return
         elif isinstance(cmd, commands.Surrender):
             print(f"{state.current_player.name} surrendered the game!")
-            game_is_running = False
-            continue
+            return
 
         state.try_command(cmd, graphics_handler)
 
