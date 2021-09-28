@@ -10,11 +10,11 @@ class InputHandler:
         self._quit = quitting
         self._limits = limits
 
-    def get_input(self, question: str) -> str:
-        response = input(question).upper()
+    def get_input(self, question: str, to_upper = True) -> str:
+        response = input(question)
         while len(response) < 1:
-            response = input(question).upper()
-        return response
+            response = input(question)
+        return response.upper( )if to_upper else response
 
     def make_question(self, cmd: CommandType) -> str:
         if cmd == CommandType.Remove:

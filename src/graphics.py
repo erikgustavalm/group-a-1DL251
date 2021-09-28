@@ -1,7 +1,6 @@
 from color import Color
 
 from player import Player
-# from game_state import GameState
 
 
 def color_to_ascii(c: Color):
@@ -26,7 +25,7 @@ class GraphicsHandler:
 
         print("       >    MENU    < \n\n"
               "       -   Play [P] \n"
-              "       -   Exit [E] \n")
+              "       -   Quit [Q] \n")
     
     def display_title(self):
         # Game title
