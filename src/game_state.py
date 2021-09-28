@@ -54,7 +54,7 @@ class GameState:
             self.current_player = self.player2
 
     def can_make_adjacent_move(self, player: Player):
-        node_indexes = self.board.get_nodes(player)
+        node_indexes = self.board.get_player_nodes(player)
         for idx in node_indexes:
             for adjacent in self.board.nodes[idx].adjacents:
                 if self.board.nodes[adjacent].color == Color.Empty:

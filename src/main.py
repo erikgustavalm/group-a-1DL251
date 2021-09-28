@@ -3,7 +3,7 @@ import input_handler
 import game_state
 import commands
 from commands import CommandType
-
+import bot
 
 board_connections = list({
     1: [2, 4, 10],
@@ -85,7 +85,13 @@ def game_loop(input_handler: input_handler.InputHandler, graphics_handler: graph
             return
 
         print(f"Player {state.current_player.name} ({graphics.color_to_ascii(state.current_player.color)}): It's your turn now ")
-        cmd = input_handler.get_command(current_state)
+
+        # TODO add an actual way to select human or bot
+        if "computer" in state.current_player.name:
+            cmd = bot.Bot().get_command(current_state, state)
+        else:
+            cmd = input_handler.get_command(current_state)
+            
 
         if isinstance(cmd, commands.Quit):
             return

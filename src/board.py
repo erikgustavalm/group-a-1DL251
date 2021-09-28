@@ -63,9 +63,12 @@ class Board:
         self.nodes[origin].color = Color.Empty
         return self.is_part_of_mill(to)
 
-    def get_nodes(self, player: Player):
+    def get_nodes_of_color(self, color: Color):
         node_indexes = []
         for idx, node in enumerate(self.nodes):
-            if node.color == player.color:
+            if node.color == color:
                 node_indexes.append(idx)
         return node_indexes
+
+    def get_player_nodes(self, player: Player):
+        return self.get_nodes_of_color(player.color)
