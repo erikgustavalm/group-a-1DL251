@@ -56,6 +56,42 @@ mills = [
 mills = [[x - 1 for x in l] for l in mills]
 
 
+def game_loop(input_handler, graphics_handler):
+    print("   Please input player name (Ｗithin 15 characters):\n"
+          "   ------------------------------------------------")
+
+    p1_name = input_handler.get_input("   Player 1:  ", False)[:15]
+    p2_name = p1_name
+    while p2_name == p1_name:
+        p2_name = input_handler.get_input("   Player 2:  ", False)[:15]
+        if p2_name == p1_name:
+            print("Can't have the same name as Player 1")
+
+    num_nodes = len(board_connections)
+    state = game_state.GameState(p1_name, p2_name,
+                                 (num_nodes, board_connections, mills))
+
+    while True:
+        graphics_handler.display_status(state.player1, state.player2, state.current_turn)
+        graphics_handler.display_game([node.color for node in state.board.nodes])
+        graphics_handler.display_messages()
+
+        current_state = state.next()
+        if current_state == CommandType.Lost:
+            print(f"Player {state.get_opponent().name} won!")
+            return
+
+        print(f"Player {state.current_player.name}, your turn:")
+        cmd = input_handler.get_command(current_state)
+
+        if isinstance(cmd, commands.Quit):
+            return
+        elif isinstance(cmd, commands.Surrender):
+            print(f"{state.current_player.name} surrendered the game!")
+            return
+
+        state.try_command(cmd, graphics_handler)
+
 
 def main():
     # vt100 escape codes test, if "Test" is printed in blue it works
@@ -66,20 +102,20 @@ def main():
     # TODO move the loop into an event loop class/function
     # so it's easier for others to integrate our code with theirs
 
-    Input = input_handler.InputHandler()
-    gh = graphics.GraphicsHandler()
+    ihandler = input_handler.InputHandler()
+    ghandler = graphics.GraphicsHandler()
 
     game_start = True
     while game_start:
-        gh.display_menu()
+        ghandler.display_menu()
 
-        option = Input.get_input("   Option([ P / E ]):  ")
+        option = ihandler.get_input("   Option([ P / Q ]):  ")
 
-        if option == 'E':
+        if option == 'Q':
             while game_start:
-                sure_exit = Input.get_input("   Sure to exit([ Y / N ]):  ")
+                sure_exit = ihandler.get_input("   Sure to quit([ Y / N ]):  ")
                 if sure_exit == 'Y':
-                    print("\n   >>> Exit Game\n")
+                    print("\n   >>> Quit Game\n")
                     game_start = False
                 elif sure_exit == 'N':
                     break
@@ -87,45 +123,7 @@ def main():
                     print("   Invalid input !\n")
                     continue
         elif option == 'P':
-            print("   Please input player name (Ｗithin 15 characters):\n"
-                  "   ------------------------------------------------")
-
-            p1_name = Input.get_input("   Player 1:  ")[:15]
-            p2_name = p1_name
-            while p2_name == p1_name:
-                p2_name = Input.get_input("   Player 2:  ")[:15]
-                if p2_name == p1_name:
-                    print("Can't have the same name as Player 1")
-
-            num_nodes = len(board_connections)
-            state = game_state.GameState(
-                p1_name, p2_name, (num_nodes, board_connections, mills))
-
-            game_is_running = True
-            while game_is_running:
-                gh.display_status(
-                    state.player1, state.player2, state.current_turn)
-                gh.display_game([node.color for node in state.board.nodes])
-                gh.display_messages()
-
-                print(f"Player {state.current_player.name}, your turn:")
-
-                current_state = state.next()
-                if current_state == CommandType.Lost:
-                    print(f"Player {state.get_opponent().name} won!")
-                    game_is_running = False
-                    continue
-
-                cmd = Input.get_command(current_state)
-
-                if isinstance(cmd, commands.Quit):
-                    return
-                elif isinstance(cmd, commands.Surrender):
-                    print(f"{state.current_player.name} surrendered the game!")
-                    game_is_running = False
-                    continue
-
-                state.try_command(cmd, gh)
+            game_loop(ihandler, ghandler)
         else:
             print("  Invalid input !\n ")
 
