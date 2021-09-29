@@ -39,8 +39,8 @@ class Board:
 
     def is_part_of_mill(self, node_idx: int) -> bool:
         for mills in self.possible_mills[node_idx]:
-            for node in mills:
-                if self.nodes[node_idx].color != self.nodes[node].color:
+            for other in mills:
+                if self.nodes[node_idx].color != self.nodes[other].color:
                     break
             else:
                 return True
