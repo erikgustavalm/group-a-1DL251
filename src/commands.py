@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-#from color import Color
-from enum import Enum,auto
+from enum import Enum, auto
+
 
 class CommandType(Enum):
     Move = auto()
@@ -11,10 +11,12 @@ class CommandType(Enum):
     Lost = auto()
     Draw = auto()
 
+
 @dataclass
 class Command():
     # Abstract class, don't instantiate a command
     pass
+
 
 @dataclass
 class Surrender(Command):
