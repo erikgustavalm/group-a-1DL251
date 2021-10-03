@@ -119,9 +119,9 @@ class GraphicsHandler:
     
     def display_draw(self):
         print("             ○──────────────────────────────────┐\n"
+              "             │                                  │\n"
               "             │             D R A W              │\n"
               "             │                                  │\n"
-              "             │        It's over 250 turns.      │\n"
               "             │──────────────────────────────────┘\n"
               "    ^────^   │\n"
               "   ( . w . ) │\n"
