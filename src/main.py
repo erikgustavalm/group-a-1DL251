@@ -57,7 +57,7 @@ mills = [[x - 1 for x in l] for l in mills]
 
 
 def game_loop(input_handler: input_handler.InputHandler, graphics_handler: graphics.GraphicsHandler):
-    print("   Please input player name (Ｗithin 15 characters):\n"
+    print("   Please input player name (Within 15 characters):\n"
           "   ------------------------------------------------")
 
     p1_name = input_handler.get_input("   Player 1:  ", False)[:15]
