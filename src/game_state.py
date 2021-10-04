@@ -113,21 +113,21 @@ class GameState:
         if isinstance(cmd, Place):
             res = self._try_place_piece(cmd, gh)
             if res == State.CreatedMill:
-                gh.add_message("   [ You got a mill! ]")
+                gh.add_message(f"   [ Player {self.current_player.name} - got a mill! ]")
             elif res == State.Valid:
-                gh.add_message(f"   [ Your piece was placed on node {cmd.to+1} ]")
+                gh.add_message(f"   [ Player {self.current_player.name} - piece was placed on node {cmd.to+1} ]")
         elif isinstance(cmd, Move):
             res = self._try_move(cmd, gh)
             if res == State.CreatedMill:
-                gh.add_message("   [ You got a mill! ] ")
+                gh.add_message("   [ Player {self.current_player.name} -  got a mill! ] ")
             elif res == State.Valid:
                 gh.add_message(
-                    f"   [ Your piece was moved from node {cmd.origin+1} to node {cmd.to+1} ]")
+                    f"   [ Player {self.current_player.name} -  piece was moved from node {cmd.origin+1} to node {cmd.to+1} ]")
         elif isinstance(cmd, Remove):
             res = self._try_remove(cmd, gh)
             if res == State.Valid:
                 gh.add_message(
-                    f"   [ You removed the opponent's piece at node {cmd.at+1} ]")
+                    f"   [ Player {self.current_player.name} -  removed the opponent's piece at node {cmd.at+1} ]")
         else:
             assert False, f"   [ Invalid command: {cmd} ]"
 
