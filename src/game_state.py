@@ -175,8 +175,12 @@ class GameState:
                     return State.CreatedMill
                 self._end_turn()
                 return State.Valid
-            gh.add_message(
-                "Invalid: Can't move piece to node that's already occupied.")
+            elif piece_to.color == Color.Empty:
+                gh.add_message(
+                    "Invalid: Can't move piece to a node that's not adjacent.")
+            else:
+                gh.add_message(
+                    "Invalid: Can't move piece to node that's already occupied.")
             return State.Invalid
         elif self.current_phase(self.current_player) == Phase.Three:
             # can move anywhere
