@@ -57,7 +57,7 @@ mills = [[x - 1 for x in l] for l in mills]
 
 
 def game_loop(input_handler: input_handler.InputHandler, graphics_handler: graphics.GraphicsHandler):
-    print("   Please input player name (Within 15 characters):\n"
+    print("\n   Please input player name (Within 15 characters):\n"
           "   ------------------------------------------------")
 
     p1_name = input_handler.get_input("   Player 1:  ", False)[:15]
@@ -72,12 +72,10 @@ def game_loop(input_handler: input_handler.InputHandler, graphics_handler: graph
                                  (num_nodes, board_connections, mills))
 
     while True:
-        graphics_handler.display_status(
-            state.player1, state.player2, state.current_turn, state.current_player)
-        graphics_handler.display_game(
-            [node.color for node in state.board.nodes])
-        graphics_handler.display_messages()
-
+        
+        graphics_handler.display_big_title()
+        graphics_handler.display_game([node.color for node in state.board.nodes])
+        
         current_state = state.next()
         if current_state == CommandType.Lost:
             graphics_handler.display_winner(state.get_opponent())
@@ -85,14 +83,17 @@ def game_loop(input_handler: input_handler.InputHandler, graphics_handler: graph
         elif current_state == CommandType.Draw:
             graphics_handler.display_draw()
             return
+        else:
+            graphics_handler.display_status(state.player1, state.player2, state.current_turn, state.current_player)
+            graphics_handler.display_messages()
 
-        print(f"Player {state.current_player.name} ({graphics.color_to_ascii(state.current_player.color)}): It's your turn now ")
+        print(f"   Player {state.current_player.name} ({graphics.color_to_ascii(state.current_player.color)}): It's your turn now ")
         cmd = input_handler.get_command(current_state)
 
         if isinstance(cmd, commands.Quit):
             return
         elif isinstance(cmd, commands.Surrender):
-            print(f"{state.current_player.name} ({graphics.color_to_ascii(state.current_player.color)}): surrendered the game!")
+            print(f"   {state.current_player.name} ({graphics.color_to_ascii(state.current_player.color)}): surrendered the game!")
             return
 
         state.try_command(cmd, graphics_handler)
@@ -106,8 +107,8 @@ def main():
     while game_start:
         ghandler.display_menu()
 
-        option = ihandler.get_input("   Option([ P / Q ]):  ")
-
+        option = ihandler.get_input("   Option([ O / A / S / Q ]):  ")
+        
         if option == 'Q':
             while game_start:
                 sure_exit = ihandler.get_input("   Sure to quit([ Y / N ]):  ")
@@ -119,8 +120,20 @@ def main():
                 else:
                     print("   Invalid input !\n")
                     continue
-        elif option == 'P':
+        
+        elif option == 'O':
             game_loop(ihandler, ghandler)
+        
+        elif option == 'A':
+            ghandler.display_AI_menu()
+            level = ihandler.get_input("   Option([ E / M / H / B ]):  ")
+            print("   Option = ", level )
+            if level == 'B':
+                continue
+        
+        elif option == 'S':
+            ghandler.display_tournament()
+        
         else:
             print("  Invalid input !\n ")
 
