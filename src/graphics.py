@@ -11,6 +11,11 @@ def color_to_ascii(c: Color):
     else:
         return "  "
 
+def display_small_title(self):
+    print("   ╔═════════════════════════════════════════════════════╗\n"
+          "   ║                       UU-Game                       ║\n"
+          "   ╚═════════════════════════════════════════════════════╝\n ")
+
 
 class GraphicsHandler:
     _messages: [str] = []
@@ -18,33 +23,45 @@ class GraphicsHandler:
     def add_message(self, message: str):
         self._messages.append(message)
 
+        
     def display_menu(self):
-        print("   ╔═════════════════════╗\n"
-              "   ║       UU-Game       ║\n"
-              "   ╚═════════════════════╝\n ")
-
-        print("       >    MENU    < \n\n"
-              "       -   Play [P] \n"
-              "       -   Quit [Q] \n")
+        display_small_title(self)
+        print("      >>>                  M E N U                  <<<\n\n"
+              "      ────    Local    ────       ────    Online   ────\n\n"
+              "      ┌────────────────────┐     ┌────────────────────┐\n"
+              "      │   One-On-One [O]   │     │ Joining Server [S] │\n"
+              "      └────────────────────┘     └────────────────────┘\n"
+              "      ┌────────────────────┐\n" 
+              "      │       AI [A]       │\n"
+              "      └────────────────────┘\n\n\n"
+              "      ──────────────────   Quit [Q]   ─────────────────\n\n")
+    def display_AI_menu(self):
+        display_small_title(self)
+        print("    >>>                   AI Level                   <<<\n\n"
+              "    ┌──────────────┐  ┌──────────────┐  ┌──────────────┐\n"
+              "    │   Easy [E]   │  │ Moderate [M] │  │   Hard [H]   │\n"
+              "    └──────────────┘  └──────────────┘  └──────────────┘\n\n\n"
+              "    ───────────────   Back to Menu [B]   ───────────────\n\n")
     
-    def display_title(self):
+    def display_tournament(self):
+        print("  ╔══════════════════════════════════════════════════════════════════════════════════════════╗\n"
+              "  ║                                        Tournament                                        ║\n"
+              "  ╚══════════════════════════════════════════════════════════════════════════════════════════╝\n\n")
+    
+    def display_big_title(self):
         # Game title
-        print("  ╔═══════════════════════════════════════════════════════════════════════════════════════════════════════╗\n"
-              "  ║                                                UU-Game                                                ║\n"
-              "  ╚═══════════════════════════════════════════════════════════════════════════════════════════════════════╝\n")
+        print("  ╔═════════════════════════════════════════════════════════════════════════════════════════╗\n"
+              "  ║                                         UU-Game                                         ║\n"
+              "  ╚═════════════════════════════════════════════════════════════════════════════════════════╝\n")
     
     def display_status(self, player1: Player, player2: Player, current_turn, current_player: Player):
         if current_player.color == player1.color:
-            p1_turn = " ──>"
-            p2_turn = "    "
+            p1_turn = " ──>"; p2_turn = "    "
         else:
-            p1_turn = "    "
-            p2_turn = " ──>"
+            p1_turn = "    "; p2_turn = " ──>"
         
         # Player status
-        print("   Round %d ( Remaining turns: %d )" %
-              (current_turn, 250-current_turn))
-        
+        print("   Round %d ( Remaining turns: %d )" %(current_turn, 250-current_turn))
         
         print("        ┌───────────────────────┬────────────────────┐\n"
               "  %s  │ %-15s( %s ) │   %2d pieces left   │\n"
@@ -54,7 +71,6 @@ class GraphicsHandler:
 
     def display_game(self, board: [Color]):
         # NOTE: Modifies board variable destructively (contents change outside function)
-
         for idx, c in enumerate(board):
             board[idx] = color_to_ascii(c)
 
@@ -107,23 +123,23 @@ class GraphicsHandler:
               "             │                                                     │\n"
               "             │                                                     │\n"
               "             └─────────────────────────────────────────────────────┘\n"
-              "            （\n"
-              "             ）\n"
-              "      .∧＿∧.(\n"
-              "     (´・ω・ n\n"
-              "     o　　 , /\n"
-              "     O＿ . /                                       Design by Group A\n"
+              "               (\n"
+              "               )\n"
+              "      .^___^. (\n"
+              "     (´. w .`)n\n"
+              "     o　　 c /\n"
+              "     0__ . /                                       Design by Group A\n"
               "       .( /     *   *   *   *   *   *   *   *   *   *   *   *   *   *\n"
               "\n" % ( player.name, color_to_ascii(player.color) ) )
 
     
     def display_draw(self):
-        print("             ○──────────────────────────────────┐\n"
+        print("             º──────────────────────────────────┐\n"
+              "             │                                  │\n"
               "             │             D R A W              │\n"
               "             │                                  │\n"
-              "             │        It's over 250 turns.      │\n"
               "             │──────────────────────────────────┘\n"
-              "    ^────^   │\n"
+              "    ^____^   │\n"
               "   ( . w . ) │\n"
               "   <　     >０\n"
               "    │     │\n"
