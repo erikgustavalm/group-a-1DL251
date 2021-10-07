@@ -119,7 +119,7 @@ class GameState:
         elif isinstance(cmd, Move):
             res = self._try_move(cmd, gh)
             if res == State.CreatedMill:
-                gh.add_message("You got a mill!")
+                gh.add_message(f"   [ Player {self.current_player.name} -  got a mill! ] ")
             elif res == State.Valid:
                 gh.add_message(
                     f"Your piece was moved from node {cmd.origin+1} to node {cmd.to+1}")
@@ -155,46 +155,29 @@ class GameState:
         if self.current_phase(self.current_player) == Phase.One:
             assert False, "Bug: Can't move piece if not in phase 1."
 
-        # Can't move to a spot already occupied by our color
-        if piece_to.color == self.current_player.color:
-            gh.add_message("Invalid: Can't move to already occupied node.")
+        if (self.current_phase(self.current_player) == Phase.Two
+            and move.to not in piece_origin.adjacents):
+            gh.add_message(
+                "   [ Invalid: Can't move piece to a node that's not adjacent.")
             return State.Invalid
 
-        # can't move a piece that isn't ours
+        if piece_to.color != Color.Empty:
+            gh.add_message("   [ Invalid: Can't move piece to node that's already occupied.")
+            return State.Invalid
+
         if piece_origin.color != self.current_player.color:
             gh.add_message(
                 "Invalid: Can't move from node not occupied by one of our pieces.")
             return State.Invalid
 
-        if self.current_phase(self.current_player) == Phase.Two:
-            # can move to an adjacent node
-            if (move.to in piece_origin.adjacents and
-                    self.board.nodes[move.to].color == Color.Empty):
-                if self.board.move_to(move.origin, move.to):
-                    self._did_create_mill = True
-                    return State.CreatedMill
-                self._end_turn()
-                return State.Valid
-            elif piece_to.color == Color.Empty:
-                gh.add_message(
-                    "Invalid: Can't move piece to a node that's not adjacent.")
-            else:
-                gh.add_message(
-                    "Invalid: Can't move piece to node that's already occupied.")
-            return State.Invalid
-        elif self.current_phase(self.current_player) == Phase.Three:
-            # can move anywhere
-            if self.board.move_to(move.origin, move.to):
-                self._did_create_mill = True
-                return State.CreatedMill
-            self._end_turn()
-            return State.Valid
-        assert False, "Unknown phase"
+        if self.board.move_to(move.origin, move.to):
+            self._did_create_mill = True
+            return State.CreatedMill
+        self._end_turn()
+        return State.Valid
 
     def _try_remove(self, cmd_remove: Remove, gh: GraphicsHandler) -> State:
-
         remove = self.board.nodes[cmd_remove.at]
-
         if remove.color == Color.Empty:
             gh.add_message("Invalid: Can't remove piece from an empty node.")
             return State.Invalid
