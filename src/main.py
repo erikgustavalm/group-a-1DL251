@@ -1,8 +1,12 @@
+import asyncio
+import random
+
 import graphics
 import input_handler
 import game_state
 import commands
 from commands import CommandType
+import network
 
 
 board_connections = list({
@@ -98,6 +102,135 @@ def game_loop(input_handler: input_handler.InputHandler, graphics_handler: graph
         state.try_command(cmd, graphics_handler)
 
 
+async def play_networked_match(player_name: str,
+                               op_name: str,
+                               op_color: str,
+                               reader: asyncio.StreamReader,
+                               writer: asyncio.StreamWriter,
+                               input_handler: input_handler.InputHandler,
+                               graphics_handler: graphics.GraphicsHandler):
+    if op_color == "black":
+        black = 1
+    elif op_color == "white":
+        black = 2
+
+    num_nodes = len(board_connections)
+    state = game_state.GameState(player_name, op_name,
+                                 (num_nodes, board_connections, mills),
+                                 black)
+    while True:
+        graphics_handler.display_game([node.color for node in state.board.nodes])
+
+        current_state = state.next()
+        if current_state == CommandType.Lost:
+            graphics_handler.display_winner(state.get_opponent())
+            return
+        elif current_state == CommandType.Draw:
+            graphics_handler.display_draw()
+            return
+        else:
+            graphics_handler.display_status(state.player1, state.player2, state.current_turn, state.current_player)
+            graphics_handler.display_messages()
+
+        if state.current_player == state.player1:
+            print(f"   Player {state.current_player.name} ({graphics.color_to_ascii(state.current_player.color)}): It's your turn now ")
+            cmd = input_handler.get_command(current_state)
+            if isinstance(cmd, commands.Move):
+                cmd_str = f"move {cmd.origin} {cmd.to}"
+            elif isinstance(cmd, commands.Place):
+                cmd_str = f"place {cmd.to}"
+            elif isinstance(cmd, commands.Remove):
+                cmd_str = f"remove {cmd.at}"
+            else:
+                assert False, f"Not yet implemented: {cmd}"
+            writer.write(cmd_str.encode('utf8'))
+            await writer.drain()
+        else:
+            # TODO get from network
+            message = (await reader.read(network.MAX_READ_BYTES)).decode('utf8')
+            # handle possible server messages?
+            if message == "some_server_message":
+                pass
+            
+            msg = message.split(" ")
+            if msg[0] == "move":
+                assert len(msg) == 3, f"Invalid message: '{message}', should look like 'move <FROM> <TO>'"
+                cmd = commands.Move(int(msg[1]), int(msg[2]))
+            elif msg[0] == "place":
+                assert len(msg) == 2, f"Invalid message: '{message}', should look like 'place <AT>'"
+                cmd = commands.Place(int(msg[1]))
+            elif msg[0] == "remove":
+                assert len(msg) == 2, f"Invalid message: '{message}', should look like 'remove <AT>'"
+                cmd = commands.Remove(int(msg[1]))
+            else:
+                assert False, f"Unrecognized message: '{message}'"
+            ## TODO handle surrender and quit commands
+            ## OR should the server translate those commands to something else?
+
+
+        if isinstance(cmd, commands.Quit):
+            return
+        elif isinstance(cmd, commands.Surrender):
+            print(f"   {state.current_player.name} ({graphics.color_to_ascii(state.current_player.color)}): surrendered the game!")
+            return
+
+        print(f"try_command with {cmd}")
+        state.try_command(cmd, graphics_handler)
+
+async def run_networked_game(ih: input_handler.InputHandler, gh: graphics.GraphicsHandler):
+    reader, writer = await asyncio.open_connection('127.0.0.1', 15555)
+    print("Connected to tournament.")
+
+    player_name = ih.get_input("   Your name:  ", False)[:15]
+
+    request = None
+    op_name = None
+    try:
+        while True:
+            x, y = random.randint(1, 24), random.randint(1, 24)
+            response = (await reader.read(network.MAX_READ_BYTES)).decode('utf8')
+            if not response:
+                print("connection refused")
+                writer.close()
+                await writer.wait_closed()
+                return
+
+            await asyncio.sleep(1)
+
+            res = response.split(" ")
+            print("received:", response, res)
+
+            if response == "name":
+                name = f"name {player_name}"
+                writer.write(name.encode('utf8'))
+                await writer.drain()
+                print("wrote:", name)
+                continue
+            elif res[0] == "start_game":
+                assert len(res) == 3, "Invalid message, should look like: start_game <COLOR> <NAME>"
+                color = res[1]
+                op_name = res[2]
+                await play_networked_match(player_name, op_name, color, reader, writer, ih, gh)
+            elif res[0] == "other_player_disconnected":
+                print("recv other_player_disconnected")
+                return
+            else:
+                assert False, f"Unknown message: {response}"
+
+            move = f"move {x} {y}"
+            writer.write(move.encode('utf8'))
+            await writer.drain()
+            print("wrote:", move)
+
+    except KeyboardInterrupt:
+        writer.close()
+        await writer.wait_closed()
+    except ConnectionResetError:
+        print("ConnectionResetError (server was shut down?)")
+    except ConnectionAbortedError:
+        print("ConnectionAbortedError (server was shut down?), can this happen on the client? it can happen on the server")
+
+
 def main():
     ihandler = input_handler.InputHandler()
     ghandler = graphics.GraphicsHandler()
@@ -106,8 +239,7 @@ def main():
     while game_start:
         ghandler.display_menu()
 
-        option = ihandler.get_input("   Option([ P / Q ]):  ")
-
+        option = ihandler.get_input("   Option([ P / J / S / Q ]):  ")
         if option == 'Q':
             while game_start:
                 sure_exit = ihandler.get_input("   Sure to quit([ Y / N ]):  ")
@@ -121,6 +253,10 @@ def main():
                     continue
         elif option == 'P':
             game_loop(ihandler, ghandler)
+        elif option == 'J':
+            asyncio.run(run_networked_game(ihandler, ghandler))
+        elif option == 'S':
+            network.run_server()
         else:
             print("  Invalid input !\n ")
 

@@ -24,8 +24,10 @@ class GraphicsHandler:
               "   ╚═════════════════════╝\n ")
 
         print("       >    MENU    < \n\n"
-              "       -   Play [P] \n"
-              "       -   Quit [Q] \n")
+              "       -   Play             [P] \n"
+              "       -   Join Tournament  [J] \n"
+              "       -   Start Tournament [S] \n"
+              "       -   Quit             [Q] \n")
     
     def display_title(self):
         # Game title

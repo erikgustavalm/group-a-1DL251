@@ -41,20 +41,33 @@ class GameState:
                  player1: str,
                  player2: str,
                  # board: (num_nodes, adjacent_nodes, mills)
-                 board: (int, [[int]], [[int]])):
+                 board: (int, [[int]], [[int]]),
+                 # None means random choice, 1 => p1 is black, 2 => p2 is black
+                 black: int = None):
         self.player1 = Player(player1, Color.Empty, 11)
         self.player2 = Player(player2, Color.Empty, 11)
         self.board = Board(board[0], board[1], board[2])
         self.current_turn = 1
 
-        if random.randint(1, 2) == 1:
+        if black is None:
+            if random.randint(1, 2) == 1:
+                self.player1.color = Color.Black
+                self.player2.color = Color.White
+                self.current_player = self.player1
+            else:
+                self.player1.color = Color.White
+                self.player2.color = Color.Black
+                self.current_player = self.player2
+        elif black == 1:
             self.player1.color = Color.Black
             self.player2.color = Color.White
             self.current_player = self.player1
-        else:
+        elif black == 2:
             self.player1.color = Color.White
             self.player2.color = Color.Black
             self.current_player = self.player2
+        else:
+            assert False, f"Invalid valud of black: '{black}', only None, 1 or 2 is supported"
 
     def can_make_adjacent_move(self, player: Player):
         node_indexes = self.board.get_nodes(player)
