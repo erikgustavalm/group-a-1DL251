@@ -1,5 +1,6 @@
 import asyncio
 import random
+import pickle
 
 import graphics
 import input_handler
@@ -7,6 +8,7 @@ import game_state
 import commands
 from commands import CommandType
 import network
+from state import State
 
 
 board_connections = list({
@@ -78,7 +80,7 @@ def game_loop(input_handler: input_handler.InputHandler, graphics_handler: graph
     while True:
 
         graphics_handler.display_game([node.color for node in state.board.nodes])
-        
+
         current_state = state.next()
         if current_state == CommandType.Lost:
             graphics_handler.display_winner(state.get_opponent())
@@ -104,28 +106,27 @@ def game_loop(input_handler: input_handler.InputHandler, graphics_handler: graph
 
 async def play_networked_match(player_name: str,
                                op_name: str,
-                               op_color: str,
+                               your_color: str,
                                reader: asyncio.StreamReader,
                                writer: asyncio.StreamWriter,
                                input_handler: input_handler.InputHandler,
                                graphics_handler: graphics.GraphicsHandler):
-    if op_color == "black":
-        black = 1
-    elif op_color == "white":
-        black = 2
-
     num_nodes = len(board_connections)
     state = game_state.GameState(player_name, op_name,
                                  (num_nodes, board_connections, mills),
-                                 black)
+                                 your_color)
     while True:
         graphics_handler.display_game([node.color for node in state.board.nodes])
 
         current_state = state.next()
         if current_state == CommandType.Lost:
+            # TODO: Send to server so it knows the match is done.
+            # Only send if it's the current player who lost,
+            # don't need to send for the networked opponent
             graphics_handler.display_winner(state.get_opponent())
             return
         elif current_state == CommandType.Draw:
+            # TODO: Send to server so it knows the match is done.
             graphics_handler.display_draw()
             return
         else:
@@ -134,51 +135,44 @@ async def play_networked_match(player_name: str,
 
         if state.current_player == state.player1:
             print(f"   Player {state.current_player.name} ({graphics.color_to_ascii(state.current_player.color)}): It's your turn now ")
-            cmd = input_handler.get_command(current_state)
-            if isinstance(cmd, commands.Move):
-                cmd_str = f"move {cmd.origin} {cmd.to}"
-            elif isinstance(cmd, commands.Place):
-                cmd_str = f"place {cmd.to}"
-            elif isinstance(cmd, commands.Remove):
-                cmd_str = f"remove {cmd.at}"
-            else:
-                assert False, f"Not yet implemented: {cmd}"
-            writer.write(cmd_str.encode('utf8'))
+            res = State.Invalid
+            while res == State.Invalid:
+                cmd = input_handler.get_command(current_state)
+                
+                if isinstance(cmd, commands.Quit):
+                    assert False, "Not yet implemented"
+                elif isinstance(cmd, commands.Surrender):
+                    print(f"   {state.current_player.name} ({graphics.color_to_ascii(state.current_player.color)}): surrendered the game!")
+                    assert False, "Not yet implemented"
+
+                res = state.try_command(cmd, graphics_handler)
+                graphics_handler.display_messages()
+
+            #print(f"try_command with {cmd}")
+            writer.write(pickle.dumps(cmd))
             await writer.drain()
+            print(f"Sent: {cmd}")
         else:
-            # TODO get from network
-            message = (await reader.read(network.MAX_READ_BYTES)).decode('utf8')
-            # handle possible server messages?
-            if message == "some_server_message":
-                pass
-            
-            msg = message.split(" ")
-            if msg[0] == "move":
-                assert len(msg) == 3, f"Invalid message: '{message}', should look like 'move <FROM> <TO>'"
-                cmd = commands.Move(int(msg[1]), int(msg[2]))
-            elif msg[0] == "place":
-                assert len(msg) == 2, f"Invalid message: '{message}', should look like 'place <AT>'"
-                cmd = commands.Place(int(msg[1]))
-            elif msg[0] == "remove":
-                assert len(msg) == 2, f"Invalid message: '{message}', should look like 'remove <AT>'"
-                cmd = commands.Remove(int(msg[1]))
-            else:
-                assert False, f"Unrecognized message: '{message}'"
+            cmd = pickle.loads(await reader.read(network.MAX_READ_BYTES))
+        
             ## TODO handle surrender and quit commands
             ## OR should the server translate those commands to something else?
+            if isinstance(cmd, commands.Quit):
+                assert False, "Not yet implemented"
+            elif isinstance(cmd, commands.Surrender):
+                print(f"   {state.current_player.name} ({graphics.color_to_ascii(state.current_player.color)}): surrendered the game!")
+                assert False, "Not yet implemented"
+
+            print(f"try_command with {cmd}")
+            state.try_command(cmd, graphics_handler)
 
 
-        if isinstance(cmd, commands.Quit):
-            return
-        elif isinstance(cmd, commands.Surrender):
-            print(f"   {state.current_player.name} ({graphics.color_to_ascii(state.current_player.color)}): surrendered the game!")
-            return
-
-        print(f"try_command with {cmd}")
-        state.try_command(cmd, graphics_handler)
 
 async def run_networked_game(ih: input_handler.InputHandler, gh: graphics.GraphicsHandler):
-    reader, writer = await asyncio.open_connection('127.0.0.1', 15555)
+    # TODO better port handling, don't crash if invalid int
+    port = input("server port: ")
+    reader, writer = await asyncio.open_connection('127.0.0.1', int(port))
+    # writer.transport.set_write_buffer_limits(0, 0)
     print("Connected to tournament.")
 
     player_name = ih.get_input("   Your name:  ", False)[:15]
@@ -187,40 +181,27 @@ async def run_networked_game(ih: input_handler.InputHandler, gh: graphics.Graphi
     op_name = None
     try:
         while True:
-            x, y = random.randint(1, 24), random.randint(1, 24)
-            response = (await reader.read(network.MAX_READ_BYTES)).decode('utf8')
-            if not response:
+            cmd = pickle.loads(await reader.read(network.MAX_READ_BYTES))
+
+            if not cmd:
                 print("connection refused")
                 writer.close()
                 await writer.wait_closed()
                 return
 
-            await asyncio.sleep(1)
+            print("received:", cmd)
 
-            res = response.split(" ")
-            print("received:", response, res)
-
-            if response == "name":
-                name = f"name {player_name}"
-                writer.write(name.encode('utf8'))
+            if isinstance(cmd, commands.GetName):
+                writer.write(pickle.dumps(commands.SetName(player_name)))
                 await writer.drain()
-                print("wrote:", name)
+                print("wrote:", commands.SetName(player_name))
                 continue
-            elif res[0] == "start_game":
-                assert len(res) == 3, "Invalid message, should look like: start_game <COLOR> <NAME>"
-                color = res[1]
-                op_name = res[2]
-                await play_networked_match(player_name, op_name, color, reader, writer, ih, gh)
-            elif res[0] == "other_player_disconnected":
-                print("recv other_player_disconnected")
-                return
+            elif isinstance(cmd, commands.StartGame):
+                await play_networked_match(player_name, cmd.op_name, cmd.your_color, reader, writer, ih, gh)
+            elif isinstance(cmd, commands.OpponentDisconnected):
+                assert False, "Not yet implemented"
             else:
-                assert False, f"Unknown message: {response}"
-
-            move = f"move {x} {y}"
-            writer.write(move.encode('utf8'))
-            await writer.drain()
-            print("wrote:", move)
+                assert False, f"Unknown command: {cmd}"
 
     except KeyboardInterrupt:
         writer.close()

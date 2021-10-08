@@ -1,3 +1,4 @@
+from typing import List
 from color import Color
 
 from player import Player
@@ -13,7 +14,7 @@ def color_to_ascii(c: Color):
 
 
 class GraphicsHandler:
-    _messages: [str] = []
+    _messages: List[str] = []
 
     def add_message(self, message: str):
         self._messages.append(message)
@@ -54,7 +55,7 @@ class GraphicsHandler:
               "  %s  │ %-15s( %s ) │   %2d pieces left   │\n"
               "        └───────────────────────┴────────────────────┘\n" % (p1_turn, player1.name, color_to_ascii(player1.color), player1.coins_left_to_place, p2_turn, player2.name, color_to_ascii(player2.color), player2.coins_left_to_place))
 
-    def display_game(self, board: [Color]):
+    def display_game(self, board: List[Color]):
         # NOTE: Modifies board variable destructively (contents change outside function)
 
         for idx, c in enumerate(board):

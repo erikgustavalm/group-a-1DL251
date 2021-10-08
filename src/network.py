@@ -1,8 +1,13 @@
+import pickle
 import asyncio
 import socket
 from asyncio.tasks import sleep
 import random
 from concurrent.futures import FIRST_COMPLETED
+from typing import Tuple
+
+import commands
+from color import Color
 
 # TODO set this to something better
 MAX_READ_BYTES = 4096
@@ -10,25 +15,24 @@ MAX_READ_BYTES = 4096
 
 async def handle_new_client_connection(reader, writer, connected, max_players):
     if await is_full(len(connected), max_players):
-        writer.write("game_is_full".encode('utf8'))
+        writer.write(pickle.dumps(commands.GameIsFull()))
+        await writer.drain()
         writer.close()
         await writer.wait_closed()
         return
 
-    writer.write("name".encode('utf8'))
+    writer.write(pickle.dumps(commands.GetName()))
     await writer.drain()
-    name = (await reader.read(MAX_READ_BYTES)).decode('utf8')
-    if not name:
+    cmd = pickle.loads(await reader.read(MAX_READ_BYTES))
+    if not cmd:
         return
 
-    name_msg = name.split(" ")
-    if name_msg[0] == "name":
-        assert len(name_msg) == 2, "Invalid command: '{name_msg}', should be: 'name <NAME>'"
-        name = name_msg[1]
+    if isinstance(cmd, commands.SetName):
+        connected.append((cmd.name, reader, writer))
     else:
-        assert False, f"Invalid command: '{name_msg}', should be: 'name <NAME>'"
+        assert False, f"Invalid command: '{cmd}'"
 
-    connected.append((name, reader, writer))
+    # TODO handle duplicate name? here or in client?
     print(f"Connected players: {len(connected)} of {max_players}")
 
 
@@ -40,6 +44,9 @@ async def run_tournament(connected, max_players):
     # TODO: set up a schedule with the connected players, then pick
     # players from that schedule instead of hardcoding it
 
+    # TODO: use Group L's scoreboard manager here
+    scoreboard = None
+
     # TODO: send scores to everyone?
     # so that even the waiting clients can see something is happening
     # or maybe send the moves to all clients
@@ -48,6 +55,7 @@ async def run_tournament(connected, max_players):
     res = await run_match(connected[0], connected[1])
     # if res.game_completed == true:
     #   check winner, add to players score
+    #   SEND SCOREBOARD TO ALL PLAYERS
     # else:
     #   remove the disconnected player from the game as if they
     #   had not been in the game in the first place
@@ -56,8 +64,8 @@ async def run_tournament(connected, max_players):
 
 
 async def run_match(
-        p1: (str, asyncio.StreamReader, asyncio.StreamWriter),
-        p2: (str, asyncio.StreamReader, asyncio.StreamWriter)):
+        p1: Tuple[str, asyncio.StreamReader, asyncio.StreamWriter],
+        p2: Tuple[str, asyncio.StreamReader, asyncio.StreamWriter]):
     print("match has started")
 
     # TODO randomize which player gets which color,
@@ -70,8 +78,10 @@ async def run_match(
     print(f"White/player 2 is {op_name}: {op_writer.get_extra_info('peername')}")
 
     try:
-        cp_writer.write(f"start_game black {op_name}".encode('utf8'))
-        op_writer.write(f"start_game white {cp_name}".encode('utf8'))
+        cp_writer.write(pickle.dumps(commands.StartGame(op_name, Color.Black)))
+        await cp_writer.drain()
+        op_writer.write(pickle.dumps(commands.StartGame(cp_name, Color.White)))
+        await op_writer.drain()
 
         while True:
             print("reading from both cp_reader and op_reader and getting the first that's done")
@@ -82,22 +92,21 @@ async def run_match(
             for task in pending:
                 task.cancel()
             if cp_read_task in done:
-                cp_response = cp_read_task.result().decode('utf8')
+                cp_response = pickle.loads(cp_read_task.result())
                 print(f"(current) cp_read_task done first, val: {cp_response}")
             if op_read_task in done:
+                cp_response = pickle.loads(op_read_task.result())
                 # swap current and other player since it's the same player as last loop iteration
                 cp_name, op_name = op_name, cp_name
                 cp_reader, op_reader = op_reader, cp_reader
                 cp_writer, op_writer = op_writer, cp_writer
-                cp_response = op_read_task.result().decode('utf8')
                 print(f"(other) op_read_task done first (so switched op and cp), val: {cp_response}")
 
+            # TODO disconnected
             if not cp_response:
-                # TODO disconnected
                 assert False
-                return
 
-            if cp_response == "lost":
+            if isinstance(cp_response, commands.Lost):
                 # TODO handle this
                 # ?? Maybe send "lost black" instead?
                 # We don't need to send this to the other player,
@@ -107,18 +116,16 @@ async def run_match(
                 # just display that the client won and go back to waiting for a
                 # start_game message
                 assert False
-                break
-            elif cp_response == "draw":
+            elif isinstance(cp_response, commands.Draw):
                 # TODO handle this
                 assert False
-                break
 
             # debug printing
             addr = cp_writer.get_extra_info('peername')
             print(f"Received {cp_response!a} from {cp_name} {addr!a}")
 
             # send current player response to other player
-            op_writer.write(cp_response.encode('utf8'))
+            op_writer.write(pickle.dumps(cp_response))
             await op_writer.drain()
 
             # swap current and other player
@@ -159,13 +166,15 @@ def run_server():
     max_players = 2
     connected = []
 
+    port = input("give port: ")
+
     print(f"Connected players: {len(connected)} of {max_players}")
 
     loop = asyncio.get_event_loop()
-    loop.create_task(accept_connections(connected, max_players))
+    loop.create_task(accept_connections(connected, max_players, port))
     loop.create_task(run_tournament(connected, max_players))
     loop.run_forever()
 
 
-async def accept_connections(connected, max_players):
-    await asyncio.start_server(lambda r, w: handle_new_client_connection(r, w, connected, max_players), '127.0.0.1', 15555)
+async def accept_connections(connected, max_players, port):
+    await asyncio.start_server(lambda r, w: handle_new_client_connection(r, w, connected, max_players), '127.0.0.1', int(port))

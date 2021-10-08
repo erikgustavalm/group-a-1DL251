@@ -1,4 +1,5 @@
 import random
+from typing import List, Tuple
 
 from color import Color
 from phase import Phase
@@ -37,37 +38,30 @@ class GameState:
         else:
             self.current_player = self.player1
 
+    def __set_color(self, black: Player, white: Player):
+        black.color = Color.Black
+        white.color = Color.White
+        self.current_player = black
+
     def __init__(self,
                  player1: str,
                  player2: str,
                  # board: (num_nodes, adjacent_nodes, mills)
-                 board: (int, [[int]], [[int]]),
-                 # None means random choice, 1 => p1 is black, 2 => p2 is black
-                 black: int = None):
+                 board: Tuple[int, List[List[int]], List[List[int]]],
+                 player1_color: Color = None):
         self.player1 = Player(player1, Color.Empty, 11)
         self.player2 = Player(player2, Color.Empty, 11)
         self.board = Board(board[0], board[1], board[2])
         self.current_turn = 1
 
-        if black is None:
-            if random.randint(1, 2) == 1:
-                self.player1.color = Color.Black
-                self.player2.color = Color.White
-                self.current_player = self.player1
-            else:
-                self.player1.color = Color.White
-                self.player2.color = Color.Black
-                self.current_player = self.player2
-        elif black == 1:
-            self.player1.color = Color.Black
-            self.player2.color = Color.White
-            self.current_player = self.player1
-        elif black == 2:
-            self.player1.color = Color.White
-            self.player2.color = Color.Black
-            self.current_player = self.player2
+        if player1_color is None:
+            self.__set_color(*random.sample([self.player1, self.player2], k=2))
+        elif player1_color == Color.Black:
+            self.__set_color(black = self.player1, white = self.player2)
+        elif player1_color == Color.White:
+            self.__set_color(black = self.player2, white = self.player1)
         else:
-            assert False, f"Invalid valud of black: '{black}', only None, 1 or 2 is supported"
+            assert False, f"Invalid value: '{player1_color}'"
 
     def can_make_adjacent_move(self, player: Player):
         node_indexes = self.board.get_nodes(player)
@@ -143,6 +137,7 @@ class GameState:
                     f"   [ Player {self.current_player.name} -  removed the opponent's piece at node {cmd.at+1} ]")
         else:
             assert False, f"   [ Invalid command: {cmd} ]"
+        return res
 
     def _try_place_piece(self, to: Place, gh: GraphicsHandler) -> State:
         # Can only place new pieces in phase one
