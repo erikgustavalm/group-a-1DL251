@@ -2,6 +2,7 @@ import asyncio
 import socket
 from asyncio.tasks import sleep
 import random
+from concurrent.futures import FIRST_COMPLETED
 
 # TODO set this to something better
 MAX_READ_BYTES = 4096
@@ -73,10 +74,24 @@ async def run_match(
         op_writer.write(f"start_game white {cp_name}".encode('utf8'))
 
         while True:
-            # wait for current player response
-            print("calling cp_reader.read")
-            cp_response = (await cp_reader.read(MAX_READ_BYTES)).decode('utf8')
-            print("response from cp_reader.read")
+            print("reading from both cp_reader and op_reader and getting the first that's done")
+            cp_read_task = asyncio.create_task(cp_reader.read(MAX_READ_BYTES))
+            op_read_task = asyncio.create_task(op_reader.read(MAX_READ_BYTES))
+            done, pending = await asyncio.wait({cp_read_task, op_read_task}, return_when=FIRST_COMPLETED)
+            # Cancel all pending tasks
+            for task in pending:
+                task.cancel()
+            if cp_read_task in done:
+                cp_response = cp_read_task.result().decode('utf8')
+                print(f"(current) cp_read_task done first, val: {cp_response}")
+            if op_read_task in done:
+                # swap current and other player since it's the same player as last loop iteration
+                cp_name, op_name = op_name, cp_name
+                cp_reader, op_reader = op_reader, cp_reader
+                cp_writer, op_writer = op_writer, cp_writer
+                cp_response = op_read_task.result().decode('utf8')
+                print(f"(other) op_read_task done first (so switched op and cp), val: {cp_response}")
+
             if not cp_response:
                 # TODO disconnected
                 assert False
