@@ -4,16 +4,32 @@ import socket
 from asyncio.tasks import sleep
 import random
 from concurrent.futures import FIRST_COMPLETED
-from typing import Tuple
+from typing import List, Tuple
+from enum import Enum, auto
 
 import commands
 from color import Color
+from scoreboard import Scoreboard
 
 # TODO set this to something better
 MAX_READ_BYTES = 4096
 
+class MatchResult(Enum):
+    Winner = auto()
+    Draw = auto()
+    Disconnected = auto()
 
-async def handle_new_client_connection(reader, writer, connected, max_players):
+
+PlayerConn = List[Tuple[str, asyncio.StreamReader, asyncio.StreamWriter]]
+
+def get_player_ident(p: PlayerConn):
+    (_,_,writer) = p
+    return writer.get_extra_info('peername')
+
+async def handle_new_client_connection(reader: asyncio.StreamReader,
+                                       writer: asyncio.StreamWriter,
+                                       connected: PlayerConn,
+                                       max_players: int):
     if await is_full(len(connected), max_players):
         writer.write(pickle.dumps(commands.GameIsFull()))
         await writer.drain()
@@ -35,32 +51,65 @@ async def handle_new_client_connection(reader, writer, connected, max_players):
     # TODO handle duplicate name? here or in client?
     print(f"Connected players: {len(connected)} of {max_players}")
 
+async def send_scoreboard_to_all(connected: PlayerConn, scoreboard: Scoreboard):
+    for (_,_, writer) in connected:
+        encoded_scoreboard = commands.DisplayScoreboard(scoreboard.to_encode())
+        writer.write(pickle.dumps(encoded_scoreboard))
 
-async def run_tournament(connected, max_players):
-    while not await is_full(len(connected), max_players):
-        # TODO, necessary? will consume lots of CPU if removed
-        await asyncio.sleep(0.1)
+async def run_tournament(connected: PlayerConn, max_players: int):
+    try:
+        while not await is_full(len(connected), max_players):
+            # TODO, necessary? will consume lots of CPU if removed
+            await asyncio.sleep(0.1)
 
-    # TODO: set up a schedule with the connected players, then pick
-    # players from that schedule instead of hardcoding it
+        # TODO: set up a schedule with the connected players, then pick
+        # players from that schedule instead of hardcoding it
 
-    # TODO: use Group L's scoreboard manager here
-    scoreboard = None
+        # using Group L's scoreboard manager here
+        scoreboard = Scoreboard()
 
-    # TODO: send scores to everyone?
-    # so that even the waiting clients can see something is happening
-    # or maybe send the moves to all clients
-    # but the clients not currently playing are just in a spectator mode?
+        # TODO: maybe send the moves to all clients, where the clients not 
+        # currently playing are in a spectator mode?
 
-    res = await run_match(connected[0], connected[1])
-    # if res.game_completed == true:
-    #   check winner, add to players score
-    #   SEND SCOREBOARD TO ALL PLAYERS
-    # else:
-    #   remove the disconnected player from the game as if they
-    #   had not been in the game in the first place
-    # loop back, choose 2 new players, and start a new match etc..
-    # exit loop when all players have played against each other
+        # TODO only loop while there are still matches left to be played
+        while True:
+            # choose 2 new players from the schedule
+            player1 = connected[0]
+            player2 = connected[1]
+            (res, data) = await run_match(player1, player2)
+
+            if res == MatchResult.Winner:
+                if data == player1:
+                    # player 1 won, add to their score
+                    scoreboard.add_score(get_player_ident(player1), get_player_ident(player2))
+                elif data == player2:
+                    # player 2 won, add to their score
+                    scoreboard.add_score(get_player_ident(player2), get_player_ident(player1))
+                else:
+                    assert False, f"Unknown value: {data}"
+                await send_scoreboard_to_all(connected, scoreboard)
+            elif res == MatchResult.Draw: # data is None
+                # add to both players' score
+                scoreboard.add_draw(get_player_ident(player1), get_player_ident(player2))
+                await send_scoreboard_to_all(connected, scoreboard)
+            elif res == MatchResult.Disconnected:
+                # TODO move the exception handling for disconnections
+                # to run_tournament from run_match?
+
+                # remove the disconnected player from the game as if they
+                # had not been in the game in the first place
+                print("Disconnected, TODO")
+                # assert False, "TODO"
+            else:
+                assert False, f"Unknown value: {res}"
+
+        assert False, "all players should have played against each other here"
+
+    except KeyboardInterrupt as e:
+        print(f"{type(e).__name__}, {e}")
+        for (_, _, writer) in connected:
+            writer.close()
+            await writer.wait_closed()
 
 
 async def run_match(
@@ -115,10 +164,12 @@ async def run_match(
                 # We check .Lost on both, but if it's the networked player,
                 # just display that the client won and go back to waiting for a
                 # start_game message
-                assert False
+
+                # return the winner
+                return MatchResult.Winner, (cp_name, cp_reader, cp_writer)
             elif isinstance(cp_response, commands.Draw):
-                # TODO handle this
-                assert False
+                # False if the match ended in a draw.
+                return MatchResult.Draw, None
 
             # debug printing
             addr = cp_writer.get_extra_info('peername')
@@ -135,16 +186,23 @@ async def run_match(
 
             #await asyncio.sleep(1.0)
 
-    except ConnectionResetError:
+    except (EOFError, ConnectionResetError, ConnectionAbortedError) as e:
         # Should send "player_disconnected" message
         # or something to the other player, so they can stop waiting
         # (or keep waiting but in a "waiting for a new game" state)
-        print("ConnectionResetError (player disconnected?)")
-    except ConnectionAbortedError:
-        print("ConnectionAbortedError (player disconnected?)")
+        # TODO return that the match was invalid and which player disconnected
+        # so the score can be cleaned up (both here and for ConnectionAbortedError)
+        # can you combine except
+        print(f"{type(e).__name__}, {e} (player disconnected?) {repr(e)}")
+        if p1[1].at_eof:
+            return MatchResult.Disconnected, p1
+        elif p2[1].at_eof:
+            return MatchResult.Disconnected, p2
+        else:
+            assert False, "one of the players are not at EOF (is that OK for Connection*Error?)"
 
 
-async def is_full(num_connected, max_players):
+async def is_full(num_connected: int, max_players: int) -> bool:
     return num_connected >= max_players
 
 
@@ -163,10 +221,10 @@ def run_server():
 
     print("Starting tournament (currently 1v1)")
 
-    max_players = 2
-    connected = []
+    max_players: int = 2
+    connected: PlayerConn = []
 
-    port = input("give port: ")
+    port: int = int(input("give port: "))
 
     print(f"Connected players: {len(connected)} of {max_players}")
 
@@ -176,5 +234,5 @@ def run_server():
     loop.run_forever()
 
 
-async def accept_connections(connected, max_players, port):
-    await asyncio.start_server(lambda r, w: handle_new_client_connection(r, w, connected, max_players), '127.0.0.1', int(port))
+async def accept_connections(connected: PlayerConn, max_players: int, port: int):
+    await asyncio.start_server(lambda r, w: handle_new_client_connection(r, w, connected, max_players), '127.0.0.1', port)

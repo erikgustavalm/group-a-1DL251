@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import Enum, auto
 from color import Color
+from scoreboard import Scoreboard
 
 
 class CommandType(Enum):
@@ -74,8 +75,14 @@ class SetName(Command):
 
 
 @dataclass
+class DisplayScoreboard(Command):
+    scoreboard: Scoreboard
+
+
+@dataclass
 class GameIsFull(Command):
     pass
+
 
 @dataclass
 class OpponentDisconnected(Command):

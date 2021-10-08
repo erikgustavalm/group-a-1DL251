@@ -88,9 +88,9 @@ def game_loop(input_handler: input_handler.InputHandler, graphics_handler: graph
         elif current_state == CommandType.Draw:
             graphics_handler.display_draw()
             return
-        else:
-            graphics_handler.display_status(state.player1, state.player2, state.current_turn, state.current_player)
-            graphics_handler.display_messages()
+
+        graphics_handler.display_status(state.player1, state.player2, state.current_turn, state.current_player)
+        graphics_handler.display_messages()
 
         print(f"   Player {state.current_player.name} ({graphics.color_to_ascii(state.current_player.color)}): It's your turn now ")
         cmd = input_handler.get_command(current_state)
@@ -120,25 +120,36 @@ async def play_networked_match(player_name: str,
 
         current_state = state.next()
         if current_state == CommandType.Lost:
-            # TODO: Send to server so it knows the match is done.
+            # Send to server so it knows the match is done.
             # Only send if it's the current player who lost,
             # don't need to send for the networked opponent
+            if state.current_player == state.player1:
+                writer.write(pickle.dumps(commands.Lost()))
+                await writer.drain()
+                print(f"Sent: {commands.Lost()}")
             graphics_handler.display_winner(state.get_opponent())
             return
         elif current_state == CommandType.Draw:
-            # TODO: Send to server so it knows the match is done.
+            # Send to server so it knows the match is a draw.
+            # only send it from the local player
+            if state.current_player == state.player1:
+                writer.write(pickle.dumps(commands.Draw()))
+                await writer.drain()
+                print(f"Sent: {commands.Draw()}")
             graphics_handler.display_draw()
             return
-        else:
-            graphics_handler.display_status(state.player1, state.player2, state.current_turn, state.current_player)
-            graphics_handler.display_messages()
+
+        graphics_handler.display_status(state.player1, state.player2, state.current_turn, state.current_player)
+        graphics_handler.display_messages()
 
         if state.current_player == state.player1:
+            ### local player ###
             print(f"   Player {state.current_player.name} ({graphics.color_to_ascii(state.current_player.color)}): It's your turn now ")
             res = State.Invalid
             while res == State.Invalid:
                 cmd = input_handler.get_command(current_state)
                 
+                # TODO handling of Quit and Surrender is duplicated
                 if isinstance(cmd, commands.Quit):
                     assert False, "Not yet implemented"
                 elif isinstance(cmd, commands.Surrender):
@@ -148,11 +159,11 @@ async def play_networked_match(player_name: str,
                 res = state.try_command(cmd, graphics_handler)
                 graphics_handler.display_messages()
 
-            #print(f"try_command with {cmd}")
             writer.write(pickle.dumps(cmd))
             await writer.drain()
             print(f"Sent: {cmd}")
         else:
+            ### remote player ###
             cmd = pickle.loads(await reader.read(network.MAX_READ_BYTES))
         
             ## TODO handle surrender and quit commands
@@ -162,6 +173,17 @@ async def play_networked_match(player_name: str,
             elif isinstance(cmd, commands.Surrender):
                 print(f"   {state.current_player.name} ({graphics.color_to_ascii(state.current_player.color)}): surrendered the game!")
                 assert False, "Not yet implemented"
+            elif isinstance(cmd, commands.OpponentDisconnected):
+                # just print a "opponent disconnected" message and return?
+                assert False, "Not yet implemented"
+            elif isinstance(cmd, commands.DisplayScoreboard):
+                assert False, "BUG: Shouldn't get a display scoreboard command during a match"
+            elif isinstance(cmd, commands.Lost):
+                # TODO does this message need to be handled on the client?
+                # or is it enough for the server to deal with it?
+                # the game state should already know it's over
+                assert False, "Not yet implemented"
+
 
             print(f"try_command with {cmd}")
             state.try_command(cmd, graphics_handler)
@@ -195,11 +217,14 @@ async def run_networked_game(ih: input_handler.InputHandler, gh: graphics.Graphi
                 writer.write(pickle.dumps(commands.SetName(player_name)))
                 await writer.drain()
                 print("wrote:", commands.SetName(player_name))
-                continue
             elif isinstance(cmd, commands.StartGame):
                 await play_networked_match(player_name, cmd.op_name, cmd.your_color, reader, writer, ih, gh)
             elif isinstance(cmd, commands.OpponentDisconnected):
-                assert False, "Not yet implemented"
+                assert False, "Not yet implemented, can this happen outside a match?"
+            elif isinstance(cmd, commands.DisplayScoreboard):
+                print("DISPLAY SPECTATOR SCOREBOARD (will display the same for all players, even the ones that just finished a match)")
+                # TODO: nicer printing of scoreboard
+                print(cmd.scoreboard)
             else:
                 assert False, f"Unknown command: {cmd}"
 
