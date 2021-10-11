@@ -9,6 +9,7 @@ from player import Player
 class Node:
     adjacents: [int]
     color: Color
+    idx: int
 
 
 def _create_possible_mills(num_intersections: int, mills: [[int]]) -> dict[int, [[int]]]:
@@ -30,7 +31,7 @@ class Board:
     def __init__(self, nodes: int, adjacent: [[int]], mills: [[int]]):
         self.nodes = []
         for idx in range(nodes):
-            self.nodes.append(Node(adjacent[idx], Color.Empty))
+            self.nodes.append(Node(adjacent[idx], Color.Empty, idx))
 
         self.possible_mills = _create_possible_mills(nodes, mills)
 
@@ -41,6 +42,15 @@ class Board:
         for mills in self.possible_mills[node_idx]:
             for other in mills:
                 if self.nodes[node_idx].color != self.nodes[other].color:
+                    break
+            else:
+                return True
+        return False
+
+    def potential_is_part_of_mill(self, node_idx: int, try_color: Color) -> bool:
+        for mills in self.possible_mills[node_idx]:
+            for other in mills:
+                if try_color != self.nodes[other].color:
                     break
             else:
                 return True
@@ -69,6 +79,13 @@ class Board:
             if node.color == color:
                 node_indexes.append(idx)
         return node_indexes
+
+    def get_nodes(self, color: Color):
+        nodes = []
+        for node in self.nodes:
+            if node.color == color:
+                nodes.append(node)
+        return nodes
 
     def get_player_nodes(self, player: Player):
         return self.get_nodes_of_color(player.color)

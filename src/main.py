@@ -2,8 +2,9 @@ import graphics
 import input_handler
 import game_state
 import commands
-from commands import CommandType
 import bot
+from commands import CommandType
+
 
 board_connections = list({
     1: [2, 4, 10],
@@ -58,6 +59,7 @@ mills = [[x - 1 for x in l] for l in mills]
 
 def game_loop(input_handler: input_handler.InputHandler, graphics_handler: graphics.GraphicsHandler):
     print("   Please input player name (Ｗithin 15 characters):\n"
+          "   enter name: easy, medium, hard for AI\n"
           "   ------------------------------------------------")
 
     p1_name = input_handler.get_input("   Player 1:  ", False)[:15]
@@ -88,12 +90,12 @@ def game_loop(input_handler: input_handler.InputHandler, graphics_handler: graph
 
         print(f"Player {state.current_player.name} ({graphics.color_to_ascii(state.current_player.color)}): It's your turn now ")
 
-        # TODO add an actual way to select human or bot
-        if "computer" in state.current_player.name:
-            cmd = bot.Bot().get_command(current_state, state)
+        # TODO: may need rework
+        if  isinstance(state.current_player, bot.Bot):
+            cmd = state.current_player.get_command(current_state, state.current_phase(state.current_player))
         else:
             cmd = input_handler.get_command(current_state)
-            
+
 
         if isinstance(cmd, commands.Quit):
             return

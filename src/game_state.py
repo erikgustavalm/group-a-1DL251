@@ -3,7 +3,7 @@ import random
 from color import Color
 from phase import Phase
 from state import State
-
+from bot import Bot,Difficulty
 from board import Board
 from player import Player
 from dataclasses import dataclass
@@ -42,10 +42,24 @@ class GameState:
                  player2: str,
                  # board: (num_nodes, adjacent_nodes, mills)
                  board: (int, [[int]], [[int]])):
-        self.player1 = Player(player1, Color.Empty, 11)
-        self.player2 = Player(player2, Color.Empty, 11)
+
         self.board = Board(board[0], board[1], board[2])
         self.current_turn = 1
+
+        # Empty string means that the player will be bot controlled
+        if player1 == "easy":
+            self.player1 = Bot(self.board, Color.Empty, 11)
+        else:
+            self.player1 = Player(player1, Color.Empty, 11)
+
+        if player2 == "easy":
+            self.player2 = Bot(self.board, Color.Empty, 11)
+        elif player2 == "medium":
+            self.player2 = Bot(self.board, Color.Empty, 11, Difficulty.Medium)
+        elif player2 == "hard":
+            self.player2 = Bot(self.board, Color.Empty, 11, Difficulty.Hard)
+        else:
+            self.player2 = Player(player2, Color.Empty, 11)
 
         if random.randint(1, 2) == 1:
             self.player1.color = Color.Black
