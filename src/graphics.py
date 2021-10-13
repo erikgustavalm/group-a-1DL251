@@ -1,3 +1,4 @@
+from typing import List
 from color import Color
 
 from player import Player
@@ -16,6 +17,16 @@ def display_small_title(self):
           "   ║                       UU-Game                       ║\n"
           "   ╚═════════════════════════════════════════════════════╝\n ")
 
+def display_tournament(self):
+    print("  ╔══════════════════════════════════════════════════════════════════════════════════════════╗\n"
+          "  ║                                        Tournament                                        ║\n"
+          "  ╚══════════════════════════════════════════════════════════════════════════════════════════╝\n\n")
+    
+def display_big_title(self):
+    # Game title
+    print("  ╔═════════════════════════════════════════════════════════════════════════════════════════╗\n"
+          "  ║                                         UU-Game                                         ║\n"
+          "  ╚═════════════════════════════════════════════════════════════════════════════════════════╝\n")    
 
 class GraphicsHandler:
     _messages: [str] = []
@@ -23,18 +34,19 @@ class GraphicsHandler:
     def add_message(self, message: str):
         self._messages.append(message)
 
-        
+    
     def display_menu(self):
-        display_small_title(self)
-        print("      >>>                  M E N U                  <<<\n\n"
-              "      ────    Local    ────       ────    Online   ────\n\n"
-              "      ┌────────────────────┐     ┌────────────────────┐\n"
-              "      │   One-On-One [O]   │     │ Joining Server [S] │\n"
-              "      └────────────────────┘     └────────────────────┘\n"
-              "      ┌────────────────────┐\n" 
-              "      │       AI [A]       │\n"
-              "      └────────────────────┘\n\n\n"
-              "      ──────────────────   Quit [Q]   ─────────────────\n\n")
+        display_big_title(self)
+        print("      >>>                                   M E N U                                  <<<\n\n"
+              "      ─────────────    Local    ─────────────     ─────────────    Online   ─────────────\n\n"
+              "      ┌─────────────────────────────────────┐     ┌─────────────────────────────────────┐\n"
+              "      │        Player  vs  Player [P]       │     │        Start New Tournament [S]     │\n"
+              "      └─────────────────────────────────────┘     └─────────────────────────────────────┘\n"
+              "      ┌─────────────────────────────────────┐     ┌─────────────────────────────────────┐\n" 
+              "      │        Player  vs    AI   [A]       │     │  Connect to Existing Tournament [C] │\n"
+              "      └─────────────────────────────────────┘     └─────────────────────────────────────┘\n\n\n"
+              "      ────────────────────────────────────  Quit [Q]  ────────────────────────────────────\n\n")
+  
     def display_AI_menu(self):
         display_small_title(self)
         print("    >>>                   AI Level                   <<<\n\n"
@@ -43,17 +55,15 @@ class GraphicsHandler:
               "    └──────────────┘  └──────────────┘  └──────────────┘\n\n\n"
               "    ───────────────   Back to Menu [B]   ───────────────\n\n")
     
-    def display_tournament(self):
-        print("  ╔══════════════════════════════════════════════════════════════════════════════════════════╗\n"
-              "  ║                                        Tournament                                        ║\n"
-              "  ╚══════════════════════════════════════════════════════════════════════════════════════════╝\n\n")
-    
-    def display_big_title(self):
-        # Game title
-        print("  ╔═════════════════════════════════════════════════════════════════════════════════════════╗\n"
-              "  ║                                         UU-Game                                         ║\n"
-              "  ╚═════════════════════════════════════════════════════════════════════════════════════════╝\n")
-    
+    def display_start_tournament(self):
+        display_tournament(self)
+        print("      >>>                         Total Player Number: 3 ~ 8                         <<< \n\n"
+              "       ┌───                                                                           \n"
+              "       │         If [ Number of Real Players ] < [ Total Number of Players ],         \n"
+              "                               AI Bot will be used as a substitute                   │\n"
+              "                                                                                  ───┘\n\n"
+              "      ─────────────────────────────────  Please Input  ─────────────────────────────────\n")
+        
     def display_status(self, player1: Player, player2: Player, current_turn, current_player: Player):
         if current_player.color == player1.color:
             p1_turn = " ──>"; p2_turn = "    "
