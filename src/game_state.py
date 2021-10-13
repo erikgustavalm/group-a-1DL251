@@ -1,4 +1,5 @@
 import random
+from typing import List, Tuple
 
 from color import Color
 from phase import Phase
@@ -37,24 +38,30 @@ class GameState:
         else:
             self.current_player = self.player1
 
+    def __set_color(self, black: Player, white: Player):
+        black.color = Color.Black
+        white.color = Color.White
+        self.current_player = black
+
     def __init__(self,
                  player1: str,
                  player2: str,
                  # board: (num_nodes, adjacent_nodes, mills)
-                 board: (int, [[int]], [[int]])):
+                 board: Tuple[int, List[List[int]], List[List[int]]],
+                 player1_color: Color = None):
         self.player1 = Player(player1, Color.Empty, 11)
         self.player2 = Player(player2, Color.Empty, 11)
         self.board = Board(board[0], board[1], board[2])
         self.current_turn = 1
 
-        if random.randint(1, 2) == 1:
-            self.player1.color = Color.Black
-            self.player2.color = Color.White
-            self.current_player = self.player1
+        if player1_color is None:
+            self.__set_color(*random.sample([self.player1, self.player2], k=2))
+        elif player1_color == Color.Black:
+            self.__set_color(black = self.player1, white = self.player2)
+        elif player1_color == Color.White:
+            self.__set_color(black = self.player2, white = self.player1)
         else:
-            self.player1.color = Color.White
-            self.player2.color = Color.Black
-            self.current_player = self.player2
+            assert False, f"Invalid value: '{player1_color}'"
 
     def can_make_adjacent_move(self, player: Player):
         node_indexes = self.board.get_nodes(player)
@@ -113,31 +120,32 @@ class GameState:
         if isinstance(cmd, Place):
             res = self._try_place_piece(cmd, gh)
             if res == State.CreatedMill:
-                gh.add_message("You got a mill!")
+                gh.add_message(f"   [ Player {self.current_player.name} - got a mill! ]")
             elif res == State.Valid:
-                gh.add_message(f"Your piece was placed on node {cmd.to+1}")
+                gh.add_message(f"   [ Player {self.current_player.name} - piece was placed on node {cmd.to+1} ]")
         elif isinstance(cmd, Move):
             res = self._try_move(cmd, gh)
             if res == State.CreatedMill:
-                gh.add_message("You got a mill!")
+                gh.add_message(f"   [ Player {self.current_player.name} -  got a mill! ] ")
             elif res == State.Valid:
                 gh.add_message(
-                    f"Your piece was moved from node {cmd.origin+1} to node {cmd.to+1}")
+                    f"   [ Player {self.current_player.name} -  piece was moved from node {cmd.origin+1} to node {cmd.to+1} ]")
         elif isinstance(cmd, Remove):
             res = self._try_remove(cmd, gh)
             if res == State.Valid:
                 gh.add_message(
-                    f"You removed the opponent's piece at node {cmd.at+1}")
+                    f"   [ Player {self.current_player.name} -  removed the opponent's piece at node {cmd.at+1} ]")
         else:
-            assert False, f"Invalid command: {cmd}"
+            assert False, f"   [ Invalid command: {cmd} ]"
+        return res
 
     def _try_place_piece(self, to: Place, gh: GraphicsHandler) -> State:
         # Can only place new pieces in phase one
         if self.current_phase(self.current_player) != Phase.One:
-            assert False, "Bug: Can only place new pieces in phase one"
+            assert False, "   [ Bug: Can only place new pieces in phase one ]"
         # and only at empty spots
         if self.board.nodes[to.to].color != Color.Empty:
-            gh.add_message("Invalid: Can't place piece on occupied node.")
+            gh.add_message("   [ Invalid: Can't place piece on occupied node. ]")
             return State.Invalid
 
         if self.board.place(to.to, self.current_player):
@@ -153,49 +161,36 @@ class GameState:
 
         # State 1 is handled by try_place_piece
         if self.current_phase(self.current_player) == Phase.One:
-            assert False, "Bug: Can't move piece if not in phase 1."
+            assert False, "   [ Bug: Can't move piece if not in phase 1. ]"
 
-        # Can't move to a spot already occupied by our color
-        if piece_to.color == self.current_player.color:
-            gh.add_message("Invalid: Can't move to already occupied node.")
+        if (self.current_phase(self.current_player) == Phase.Two
+            and move.to not in piece_origin.adjacents):
+            gh.add_message(
+                "   [ Invalid: Can't move piece to a node that's not adjacent.")
             return State.Invalid
 
-        # can't move a piece that isn't ours
+        if piece_to.color != Color.Empty:
+            gh.add_message("   [ Invalid: Can't move piece to node that's already occupied.")
+            return State.Invalid
+
         if piece_origin.color != self.current_player.color:
             gh.add_message(
-                "Invalid: Can't move from node not occupied by one of our pieces.")
+                "   [ Invalid: Can't move from node not occupied by one of our pieces. ]")
             return State.Invalid
 
-        if self.current_phase(self.current_player) == Phase.Two:
-            # can move to an adjacent node
-            if (move.to in piece_origin.adjacents and
-                    self.board.nodes[move.to].color == Color.Empty):
-                if self.board.move_to(move.origin, move.to):
-                    self._did_create_mill = True
-                    return State.CreatedMill
-                self._end_turn()
-                return State.Valid
-            gh.add_message(
-                "Invalid: Can't move piece to node that's already occupied.")
-            return State.Invalid
-        elif self.current_phase(self.current_player) == Phase.Three:
-            # can move anywhere
-            if self.board.move_to(move.origin, move.to):
-                self._did_create_mill = True
-                return State.CreatedMill
-            self._end_turn()
-            return State.Valid
-        assert False, "Unknown phase"
+        if self.board.move_to(move.origin, move.to):
+            self._did_create_mill = True
+            return State.CreatedMill
+        self._end_turn()
+        return State.Valid
 
     def _try_remove(self, cmd_remove: Remove, gh: GraphicsHandler) -> State:
-
         remove = self.board.nodes[cmd_remove.at]
-
         if remove.color == Color.Empty:
-            gh.add_message("Invalid: Can't remove piece from an empty node.")
+            gh.add_message("   [ Invalid: Can't remove piece from an empty node. ]")
             return State.Invalid
         if remove.color == self.current_player.color:
-            gh.add_message("Invalid: Can't remove our own pieces.")
+            gh.add_message("   [ Invalid: Can't remove our own pieces. ]")
             return State.Invalid
 
         # Is the piece we want to remove part of a mill?
@@ -218,7 +213,7 @@ class GameState:
 
             if not self.board.is_part_of_mill(idx):
                 gh.add_message(
-                    "Invalid: Can't remove piece from mill when pieces not part of mills exist.")
+                    "   [ Invalid: Can't remove piece from mill when pieces not part of mills exist. ]")
                 return State.Invalid
 
         # We only found pieces that were part of mills, so it's a legal move
@@ -231,7 +226,7 @@ class GameState:
             return self.board.num_black
         elif color == Color.White:
             return self.board.num_white
-        assert False, "Bug: Unknown color (or empty)"
+        assert False, "   [ Bug: Unknown color (or empty) ]"
 
     def update_mills(self) -> bool:
         pass
