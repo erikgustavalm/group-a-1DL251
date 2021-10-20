@@ -137,7 +137,11 @@ class GameState:
                     f"   [ Player {self.current_player.name} -  removed the opponent's piece at node {cmd.at+1} ]")
         else:
             assert False, f"   [ Invalid command: {cmd} ]"
+2
+￼
+
         return res
+
 
     def _try_place_piece(self, to: Place, gh: GraphicsHandler) -> State:
         # Can only place new pieces in phase one

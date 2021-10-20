@@ -80,7 +80,7 @@ def game_loop(input_handler: input_handler.InputHandler, graphics_handler: graph
     while True:
 
         graphics_handler.display_game([node.color for node in state.board.nodes])
-
+        
         current_state = state.next()
         if current_state == CommandType.Lost:
             graphics_handler.display_winner(state.get_opponent())
@@ -88,9 +88,14 @@ def game_loop(input_handler: input_handler.InputHandler, graphics_handler: graph
         elif current_state == CommandType.Draw:
             graphics_handler.display_draw()
             return
+        else:
+            graphics_handler.display_status(state.player1, state.player2, state.current_turn, state.current_player)
+            graphics_handler.display_messages()
+
 
         graphics_handler.display_status(state.player1, state.player2, state.current_turn, state.current_player)
         graphics_handler.display_messages()
+
 
         print(f"   Player {state.current_player.name} ({graphics.color_to_ascii(state.current_player.color)}): It's your turn now ")
         cmd = input_handler.get_command(current_state)
