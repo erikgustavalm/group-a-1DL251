@@ -10,8 +10,6 @@ from dataclasses import dataclass
 from commands import Command, Move, Place, Remove, CommandType
 from graphics import GraphicsHandler
 
-from enum import Enum, auto
-
 
 @dataclass
 class GameState:
