@@ -101,6 +101,7 @@ def game_loop(input_handler: input_handler.InputHandler, graphics_handler: graph
             return
         elif isinstance(cmd, commands.Surrender):
             print(f"{state.current_player.name} ({graphics.color_to_ascii(state.current_player.color)}): surrendered the game!")
+            graphics_handler.display_winner(state.get_opponent())
             return
 
         state.try_command(cmd, graphics_handler)
