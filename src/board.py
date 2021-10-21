@@ -1,18 +1,17 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import List
 from color import Color
 from player import Player
 
 
 @dataclass
 class Node:
-    adjacents: List[int]
+    adjacents: [int]
     color: Color
 
 
-def _create_possible_mills(num_intersections: int, mills: List[List[int]]) -> dict[int, List[List[int]]]:
+def _create_possible_mills(num_intersections: int, mills: [[int]]) -> dict[int, [[int]]]:
     possible_mills = {}
     for i in range(num_intersections + 1):
         possible_mills[i] = []
@@ -25,10 +24,10 @@ def _create_possible_mills(num_intersections: int, mills: List[List[int]]) -> di
 
 @dataclass
 class Board:
-    nodes: List[Node]
-    possible_mills: dict[int, List[List[int]]]
+    nodes: [Node]
+    possible_mills: dict[int, [[int]]]
 
-    def __init__(self, nodes: int, adjacent: List[List[int]], mills: List[List[int]]):
+    def __init__(self, nodes: int, adjacent: [[int]], mills: [[int]]):
         self.nodes = []
         for idx in range(nodes):
             self.nodes.append(Node(adjacent[idx], Color.Empty))
