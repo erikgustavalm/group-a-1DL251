@@ -245,7 +245,7 @@ def main():
     while game_start:
         ghandler.display_menu()
 
-        option = ihandler.get_input("   Option([ P / J / S / Q ]):  ")
+        option = ihandler.get_input("   Option([ P / A / S / C / Q ]):  ")
         if option == 'Q':
             while game_start:
                 sure_exit = ihandler.get_input("   Sure to quit([ Y / N ]):  ")
@@ -259,9 +259,14 @@ def main():
                     continue
         elif option == 'P':
             game_loop(ihandler, ghandler)
-        elif option == 'J':
+        elif option == 'A':
+            ghandler.display_AI_menu()
+            level = ihandler.get_input("   Option([ E / M / H / B ]):  ")
+            print("   Option = ", level )
+        elif option == 'C':
             asyncio.run(run_networked_game(ihandler, ghandler))
         elif option == 'S':
+            ghandler.display_start_tournament()
             network.run_server()
         else:
             print("  Invalid input !\n ")
