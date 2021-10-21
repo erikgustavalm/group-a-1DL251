@@ -47,6 +47,10 @@ class GameState:
         # Empty string means that the player will be bot controlled
         if player1 == "easy":
             self.player1 = Bot(self.board, Color.Empty, 11)
+        elif player1 == "medium":
+            self.player1 = Bot(self.board, Color.Empty, 11, Difficulty.Medium)
+        elif player1 == "hard":
+            self.player1 = Bot(self.board, Color.Empty, 11, Difficulty.Hard)
         else:
             self.player1 = Player(player1, Color.Empty, 11)
 
