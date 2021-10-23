@@ -103,7 +103,7 @@ async def run_tournament(connected: PlayerConn, max_players: int):
             else:
                 assert False, f"Unknown value: {res}"
 
-        assert False, "all players should have played against each other here"
+        # assert False, "all players should have played against each other here"
 
     except KeyboardInterrupt as e:
         print(f"{type(e).__name__}, {e}")
@@ -165,11 +165,19 @@ async def run_match(
                 # just display that the client won and go back to waiting for a
                 # start_game message
 
+                # TODO should this be cp_* instead of op_*?
                 # return the winner
-                return MatchResult.Winner, (cp_name, cp_reader, cp_writer)
+                return MatchResult.Winner, (op_name, op_reader, op_writer)
+            elif isinstance(cp_response, commands.Surrender):
+                # TODO should this be op_* instead of cp_* and vice versa?
+                op_writer.write(pickle.dumps(commands.Surrender()))
+                await op_writer.drain()
+                return MatchResult.Winner, (op_name, op_reader, op_writer)
             elif isinstance(cp_response, commands.Draw):
                 # False if the match ended in a draw.
                 return MatchResult.Draw, None
+            elif isinstance(cp_response, commands.Quit):
+                return MatchResult.Disconnected, (cp_name, cp_reader, cp_writer)
 
             # debug printing
             addr = cp_writer.get_extra_info('peername')
@@ -194,9 +202,15 @@ async def run_match(
         # so the score can be cleaned up (both here and for ConnectionAbortedError)
         # can you combine except
         print(f"{type(e).__name__}, {e} (player disconnected?) {repr(e)}")
-        if p1[1].at_eof:
+        _, p1_reader, p1_writer = p1
+        _, p2_reader, p2_writer = p2
+        if p1_reader.at_eof:
+            p1_writer.write(pickle.dumps(commands.OpponentDisconnected()))
+            await p1_writer.drain()
             return MatchResult.Disconnected, p1
-        elif p2[1].at_eof:
+        elif p2_reader.at_eof:
+            p2_writer.write(pickle.dumps(commands.OpponentDisconnected()))
+            await p2_writer.drain()
             return MatchResult.Disconnected, p2
         else:
             assert False, "one of the players are not at EOF (is that OK for Connection*Error?)"

@@ -116,7 +116,8 @@ async def play_networked_match(player_name: str,
                                reader: asyncio.StreamReader,
                                writer: asyncio.StreamWriter,
                                input_handler: input_handler.InputHandler,
-                               graphics_handler: graphics.GraphicsHandler):
+                               graphics_handler: graphics.GraphicsHandler
+                               ) -> bool:
     num_nodes = len(board_connections)
     state = game_state.GameState(player_name, op_name,
                                  (num_nodes, board_connections, mills),
@@ -134,7 +135,7 @@ async def play_networked_match(player_name: str,
                 await writer.drain()
                 print(f"Sent: {commands.Lost()}")
             graphics_handler.display_winner(state.get_opponent())
-            return
+            return True
         elif current_state == CommandType.Draw:
             # Send to server so it knows the match is a draw.
             # only send it from the local player
@@ -143,7 +144,7 @@ async def play_networked_match(player_name: str,
                 await writer.drain()
                 print(f"Sent: {commands.Draw()}")
             graphics_handler.display_draw()
-            return
+            return True
 
         graphics_handler.display_status(state.player1, state.player2, state.current_turn, state.current_player)
         graphics_handler.display_messages()
@@ -157,10 +158,15 @@ async def play_networked_match(player_name: str,
                 
                 # TODO handling of Quit and Surrender is duplicated
                 if isinstance(cmd, commands.Quit):
-                    assert False, "Not yet implemented"
+                    writer.write(pickle.dumps(cmd))
+                    await writer.drain()
+                    return False
                 elif isinstance(cmd, commands.Surrender):
-                    print(f"   {state.current_player.name} ({graphics.color_to_ascii(state.current_player.color)}): surrendered the game!")
-                    assert False, "Not yet implemented"
+                    print(f"    {state.current_player.name} ({graphics.color_to_ascii(state.current_player.color)}): surrendered the game!")
+                    graphics_handler.display_winner(state.get_opponent())
+                    writer.write(pickle.dumps(cmd))
+                    await writer.drain()
+                    return True
 
                 res = state.try_command(cmd, graphics_handler)
                 graphics_handler.display_messages()
@@ -175,13 +181,17 @@ async def play_networked_match(player_name: str,
             ## TODO handle surrender and quit commands
             ## OR should the server translate those commands to something else?
             if isinstance(cmd, commands.Quit):
-                assert False, "Not yet implemented"
+                print(f"   {state.current_player.name} ({graphics.color_to_ascii(state.current_player.color)}): quit from game!")
+                graphics_handler.display_winner(state.get_opponent())
+                return True
             elif isinstance(cmd, commands.Surrender):
                 print(f"   {state.current_player.name} ({graphics.color_to_ascii(state.current_player.color)}): surrendered the game!")
-                assert False, "Not yet implemented"
+                graphics_handler.display_winner(state.get_opponent())
+                return True
             elif isinstance(cmd, commands.OpponentDisconnected):
-                # just print a "opponent disconnected" message and return?
-                assert False, "Not yet implemented"
+                print(f"   {state.current_player.name} ({graphics.color_to_ascii(state.current_player.color)}): disconnected from game!")
+                graphics_handler.display_winner(state.get_opponent())
+                return True
             elif isinstance(cmd, commands.DisplayScoreboard):
                 assert False, "BUG: Shouldn't get a display scoreboard command during a match"
             elif isinstance(cmd, commands.Lost):
@@ -193,10 +203,11 @@ async def play_networked_match(player_name: str,
 
             print(f"try_command with {cmd}")
             state.try_command(cmd, graphics_handler)
+    return True
 
 
 
-async def run_networked_game(ih: input_handler.InputHandler, gh: graphics.GraphicsHandler):
+async def run_networked_game(ih: input_handler.InputHandler, gh: graphics.GraphicsHandler) -> bool:
     # TODO better port handling, don't crash if invalid int
     port = input("server port: ")
     reader, writer = await asyncio.open_connection('127.0.0.1', int(port))
@@ -215,7 +226,7 @@ async def run_networked_game(ih: input_handler.InputHandler, gh: graphics.Graphi
                 print("connection refused")
                 writer.close()
                 await writer.wait_closed()
-                return
+                return True
 
             print("received:", cmd)
 
@@ -224,7 +235,9 @@ async def run_networked_game(ih: input_handler.InputHandler, gh: graphics.Graphi
                 await writer.drain()
                 print("wrote:", commands.SetName(player_name))
             elif isinstance(cmd, commands.StartGame):
-                await play_networked_match(player_name, cmd.op_name, cmd.your_color, reader, writer, ih, gh)
+                res = await play_networked_match(player_name, cmd.op_name, cmd.your_color, reader, writer, ih, gh)
+                if not res:
+                    return False
             elif isinstance(cmd, commands.OpponentDisconnected):
                 assert False, "Not yet implemented, can this happen outside a match?"
             elif isinstance(cmd, commands.DisplayScoreboard):
@@ -233,6 +246,7 @@ async def run_networked_game(ih: input_handler.InputHandler, gh: graphics.Graphi
                 print(cmd.scoreboard)
             else:
                 assert False, f"Unknown command: {cmd}"
+        return True
 
     except KeyboardInterrupt:
         writer.close()
@@ -270,7 +284,12 @@ def main():
             level = ihandler.get_input("   Option([ E / M / H / B ]):  ")
             print("   Option = ", level )
         elif option == 'C':
-            asyncio.run(run_networked_game(ihandler, ghandler))
+            # Broken on Windows, see https://github.com/aio-libs/aiohttp/issues/4324#issuecomment-733884349 for another "fix"
+            # res = asyncio.run(run_networked_game(ihandler, ghandler))
+            loop = asyncio.get_event_loop()
+            res = loop.run_until_complete(run_networked_game(ihandler, ghandler))
+            if not res:
+                return
         elif option == 'S':
             ghandler.display_start_tournament()
             network.run_server()
