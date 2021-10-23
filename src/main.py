@@ -6,6 +6,7 @@ import graphics
 import input_handler
 import game_state
 import commands
+import bot
 from commands import CommandType
 import network
 from state import State
@@ -63,7 +64,8 @@ mills = [[x - 1 for x in l] for l in mills]
 
 
 def game_loop(input_handler: input_handler.InputHandler, graphics_handler: graphics.GraphicsHandler):
-    print("   Please input player name (Within 15 characters):\n"
+    print("   Please input player name (Ｗithin 15 characters):\n"
+          "   enter name: easy, medium, hard for AI\n"
           "   ------------------------------------------------")
 
     p1_name = input_handler.get_input("   Player 1:  ", False)[:15]
@@ -78,7 +80,6 @@ def game_loop(input_handler: input_handler.InputHandler, graphics_handler: graph
                                  (num_nodes, board_connections, mills))
 
     while True:
-
         graphics_handler.display_game([node.color for node in state.board.nodes])
 
         current_state = state.next()
@@ -93,12 +94,17 @@ def game_loop(input_handler: input_handler.InputHandler, graphics_handler: graph
         graphics_handler.display_messages()
 
         print(f"   Player {state.current_player.name} ({graphics.color_to_ascii(state.current_player.color)}): It's your turn now ")
-        cmd = input_handler.get_command(current_state)
+        # TODO: may need rework
+        if  isinstance(state.current_player, bot.Bot):
+            cmd = state.current_player.get_command(current_state, state.current_phase(state.current_player))
+        else:
+            cmd = input_handler.get_command(current_state)
 
         if isinstance(cmd, commands.Quit):
             return
         elif isinstance(cmd, commands.Surrender):
-            print(f"   {state.current_player.name} ({graphics.color_to_ascii(state.current_player.color)}): surrendered the game!")
+            print(f"    {state.current_player.name} ({graphics.color_to_ascii(state.current_player.color)}): surrendered the game!")
+            graphics_handler.display_winner(state.get_opponent())
             return
 
         state.try_command(cmd, graphics_handler)
