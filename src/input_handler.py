@@ -1,5 +1,14 @@
 from commands import Command, Place, Surrender, Quit, Remove, Move, CommandType
+import os
 
+def flush_input():
+    if os.name == 'nt':
+        import msvcrt
+        while msvcrt.kbhit():
+            msvcrt.getch()
+    elif os.name == 'posix':
+        import sys, termios
+        termios.tcflush(sys.stdin, termios.TCIOFLUSH)
 
 class InputHandler:
     _surrender = None
@@ -15,9 +24,11 @@ class InputHandler:
         self._limits = limits
 
     def get_input(self, question: str, to_upper=True) -> str:
-        response = input(question)
-        while len(response) < 1:
+        while True:
+            flush_input()
             response = input(question)
+            if len(response) >= 1:
+                break
         return response.upper() if to_upper else response
 
     def _make_question(self, cmd: CommandType) -> str:

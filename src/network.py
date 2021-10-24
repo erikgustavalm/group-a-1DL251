@@ -11,6 +11,12 @@ from itertools import combinations
 import commands
 from color import Color
 from scoreboard import Scoreboard
+from port import get_port
+import os
+import errno
+
+class TournamentEnded(Exception):
+    pass
 
 # TODO set this to something better
 MAX_READ_BYTES = 4096
@@ -176,6 +182,7 @@ async def run_tournament(connected: List[Player], max_players: int):
             else:
                 assert False, f"Unknown value: {res}"
 
+        raise TournamentEnded
         # assert False, "all players should have played against each other here"
 
     except KeyboardInterrupt as e:
@@ -238,11 +245,19 @@ async def run_match(
                 # just display that the client won and go back to waiting for a
                 # start_game message
 
+                # TODO should this be cp_* instead of op_*?
                 # return the winner
-                return MatchResult.Winner, (cp_name, cp_reader, cp_writer)
+                return MatchResult.Winner, (op_name, op_reader, op_writer)
+            elif isinstance(cp_response, commands.Surrender):
+                # TODO should this be op_* instead of cp_* and vice versa?
+                op_writer.write(pickle.dumps(commands.Surrender()))
+                await op_writer.drain()
+                return MatchResult.Winner, (op_name, op_reader, op_writer)
             elif isinstance(cp_response, commands.Draw):
                 # False if the match ended in a draw.
                 return MatchResult.Draw, None
+            elif isinstance(cp_response, commands.Quit):
+                return MatchResult.Disconnected, (cp_name, cp_reader, cp_writer)
 
             # debug printing
             addr = cp_writer.get_extra_info('peername')
@@ -267,9 +282,15 @@ async def run_match(
         # so the score can be cleaned up (both here and for ConnectionAbortedError)
         # can you combine except
         print(f"{type(e).__name__}, {e} (player disconnected?) {repr(e)}")
-        if p1[1].at_eof:
+        _, p1_reader, p1_writer = p1
+        _, p2_reader, p2_writer = p2
+        if p1_reader.at_eof:
+            p1_writer.write(pickle.dumps(commands.OpponentDisconnected()))
+            await p1_writer.drain()
             return MatchResult.Disconnected, p1
-        elif p2[1].at_eof:
+        elif p2_reader.at_eof:
+            p2_writer.write(pickle.dumps(commands.OpponentDisconnected()))
+            await p2_writer.drain()
             return MatchResult.Disconnected, p2
         else:
             assert False, "one of the players are not at EOF (is that OK for Connection*Error?)"
@@ -278,6 +299,21 @@ async def run_match(
 def is_full(num_connected: int, max_players: int) -> bool:
     return num_connected >= max_players
 
+server = None
+
+def custom_exception_handler(loop, context):
+    global server
+    exception = context.get('exception')
+    if isinstance(exception, TournamentEnded):
+        print("custom_exception_handler TournamentEnded")
+        # print(context)
+        if server:
+            print("called server.close()")
+            server.close()
+        loop.stop()
+        return
+    # NOTE not calling this silences exceptions, I think
+    loop.default_exception_handler(context)
 
 def run_server():
     # TODO: Ask host to input max players
@@ -297,15 +333,30 @@ def run_server():
     max_players: int = 3
     connected: List[Player] = []
 
-    port: int = int(input("give port: "))
-
-    print(f"Connected players: {len(connected)} of {max_players}")
-
     loop = asyncio.get_event_loop()
-    loop.create_task(accept_connections(connected, max_players, port))
+    loop.set_exception_handler(custom_exception_handler)
+
+    loop.create_task(accept_connections(connected, max_players))
     loop.create_task(run_tournament(connected, max_players))
+
     loop.run_forever()
 
 
-async def accept_connections(connected: List[Player], max_players: int, port: int):
-    await asyncio.start_server(lambda r, w: handle_new_client_connection(r, w, connected, max_players), '127.0.0.1', port)
+async def accept_connections(connected: List[Player], max_players: int):
+    global server
+    while True:
+        port: Union[int, commands.Quit] = get_port()
+        if isinstance(port, commands.Quit):
+            raise TournamentEnded
+        try:
+            server = await asyncio.start_server(lambda r, w: handle_new_client_connection(r, w, connected, max_players), '127.0.0.1', port)
+            print(f"Connected players: {len(connected)} of {max_players}")
+            break
+        except OSError as e:
+            # TODO: 'raise e from e' re-raises the exception,
+            # keeping the old stack trace, should we use that instead?
+            if (os.name == 'nt' and e.errno != errno.WSAEADDRINUSE
+                or os.name == 'posix' and e.errno != errno.EADDRINUSE
+                    or os.name not in ['posix', 'nt']):
+                raise
+            print("Port already in use, try again or type 'quit' or 'q' to go back to the menu")
