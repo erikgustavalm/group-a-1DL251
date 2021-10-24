@@ -157,16 +157,16 @@ async def play_local_bot_match(player_name: str,
 
 async def play_networked_match(player_name: str,
                                op_name: str,
-                               your_color: str,
+                               your_color: Color,
                                reader: asyncio.StreamReader,
                                writer: asyncio.StreamWriter,
                                input_handler: input_handler.InputHandler,
                                graphics_handler: graphics.GraphicsHandler
                                ) -> bool:
     num_nodes = len(board_connections)
-    state = game_state.GameState(player_name, op_name,
-                                 (num_nodes, board_connections, mills),
-                                 your_color)
+    state = game_state.GameState(Player(player_name), Player(op_name),
+                                 (num_nodes, board_connections, mills))
+    state.set_color(your_color)
     while True:
         graphics_handler.display_game([node.color for node in state.board.nodes])
 
@@ -272,20 +272,22 @@ async def run_networked_game(ih: input_handler.InputHandler, gh: graphics.Graphi
     # writer.transport.set_write_buffer_limits(0, 0)
     print("Connected to tournament.")
 
+    prev_scoreboard = None
+
     request = None
     op_name = None
     try:
         while True:
             # print("waiting for message")
             res = await reader.read(network.MAX_READ_BYTES)
-            # print(f"num bytes: {len(res)}")
-            cmd = pickle.loads(res)
-
-            if not cmd:
+            if not res:
                 print("connection refused")
                 writer.close()
                 await writer.wait_closed()
                 return True
+            # print(f"num bytes: {len(res)}")
+            cmd = pickle.loads(res)
+
 
             print("received:", cmd)
 
@@ -316,7 +318,15 @@ async def run_networked_game(ih: input_handler.InputHandler, gh: graphics.Graphi
             elif isinstance(cmd, commands.DisplayScoreboard):
                 print("DISPLAY SPECTATOR SCOREBOARD (will display the same for all players, even the ones that just finished a match)")
                 # TODO: nicer printing of scoreboard
+                prev_scoreboard = cmd.scoreboard
                 print(cmd.scoreboard)
+            elif isinstance(cmd, commands.TournamentOver):
+                print("TOURNAMENT IS OVER")
+                # TODO: nicer printing of scoreboard
+                if prev_scoreboard:
+                    print(prev_scoreboard)
+                input("Press Enter to continue.")
+                return True
             else:
                 assert False, f"Unknown command: {cmd}"
         writer.close()

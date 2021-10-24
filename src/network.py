@@ -45,7 +45,7 @@ async def handle_new_client_connection(reader: asyncio.StreamReader,
                                        connected: List[Player],
                                        max_real_players: int):
     if is_full(len(connected), max_real_players):
-        send_game_full(writer)
+        await send_game_full(writer)
         return
     while True:
         writer.write(pickle.dumps(commands.GetName()))
@@ -75,7 +75,7 @@ async def send_scoreboard_to_all(connected: List[Player], scoreboard: Scoreboard
         encoded_scoreboardV = commands.DisplayScoreboard(scoreboard.to_encode())
         writer.write(pickle.dumps(encoded_scoreboard))
 '''
-async def send_scoreboard_to_all(connected: List[Union[Player, Bot]], match_list: List[Match]):
+def calc_scoreboard(connected: List[Union[Player, Bot]], match_list: List[Match]) -> List[Tuple[str, int]]:
     scoreboard = {}
     for player in connected:
         scoreboard[player[0]] = 0
@@ -92,6 +92,10 @@ async def send_scoreboard_to_all(connected: List[Union[Player, Bot]], match_list
     scoreboard = sorted(
         list(scoreboard.items()), key=lambda x: x[1], reverse=True)
 
+    return scoreboard
+
+async def send_scoreboard_to_all(connected: List[Union[Player, Bot]], match_list: List[Match]):
+    scoreboard: List[Tuple[str, int]] = calc_scoreboard(connected, match_list)
     encoded_scoreboard = pickle.dumps(commands.DisplayScoreboard(scoreboard))
     print(f"num bytes: {len(encoded_scoreboard)}")
 
@@ -141,7 +145,6 @@ async def run_tournament(connected: List[Union[Player, Bot]], max_real_players: 
             await asyncio.sleep(0.1)
 
         connected.extend(bots)
-        print(connected)
 
         match_list = create_and_shuffle_matches(connected)
 
@@ -173,7 +176,8 @@ async def run_tournament(connected: List[Union[Player, Bot]], max_real_players: 
             except:
                 pass
 
-            if player1_is_bot and player2_is_bot: # Match is between bots
+            if player1_is_bot and player2_is_bot:  # Match is between bots
+                await asyncio.sleep(1.0) # NOTE keep it from printing the result instantly
                 res = MatchResult.Winner
                 # higher difficulty wins
                 p1_diff = player1[1]
@@ -203,7 +207,8 @@ async def run_tournament(connected: List[Union[Player, Bot]], max_real_players: 
 
                 # hack for windows, doesn't like sending two messages
                 # in a row to the same writer for some reason
-                if os.name == 'nt': await asyncio.sleep(0.01)
+                # if os.name == 'nt':
+                await asyncio.sleep(0.1)
 
                 await send_scoreboard_to_all(connected, match_list)
             elif res == MatchResult.Draw: # data is None
@@ -212,7 +217,8 @@ async def run_tournament(connected: List[Union[Player, Bot]], max_real_players: 
 
                 # hack for windows, doesn't like sending two messages
                 # in a row to the same writer for some reason
-                if os.name == 'nt': await asyncio.sleep(0.01)
+                # if os.name == 'nt':
+                await asyncio.sleep(0.1)
 
                 await send_scoreboard_to_all(connected, match_list)
             elif res == MatchResult.Disconnected:
@@ -226,6 +232,27 @@ async def run_tournament(connected: List[Union[Player, Bot]], max_real_players: 
                 # assert False, "TODO"
             else:
                 assert False, f"Unknown value: {res}"
+            # TODO hack to get the socket buffer to empty
+            # it doesn't seem to like sending multiple messages in a row
+            await asyncio.sleep(0.1)
+
+        # TODO hack to get the socket buffer to empty
+        # it doesn't seem to like sending multiple messages in a row
+        await asyncio.sleep(0.1)
+
+        scoreboard = calc_scoreboard(connected, match_list)
+        for player in connected:
+            try:
+                (name, _, writer) = player
+                print(f"sending TournamentOver to {name}")
+                writer.write(pickle.dumps(commands.TournamentOver()))
+                await writer.drain()
+                writer.close()
+                await writer.wait_closed()
+            except ValueError as e:
+                pass
+
+        print(scoreboard)
 
         raise TournamentEnded
         # assert False, "all players should have played against each other here"
@@ -265,14 +292,20 @@ async def run_bot_match(
                 # TODO which player is sending the Lost command?
                 # need to add a commands.Win and make sure
                 # only the real player sends it?
+                assert False, "Never going to happen"
                 return MatchResult.Winner, (p_name, p_reader, p_writer)
             elif isinstance(p_response, commands.Surrender):
                 # TODO same as the Lost command, who sent it?
-                return MatchResult.Winner, (p_name, p_reader, p_writer)
+                return MatchResult.Winner, bot
             elif isinstance(p_response, commands.Draw):
                 return MatchResult.Draw, None
             elif isinstance(p_response, commands.Quit):
                 return MatchResult.Disconnected, (p_name, p_reader, p_writer)
+            else:
+                if p_response == p_name:
+                    return MatchResult.Winner, (p_name, p_reader, p_writer)
+                elif p_response == botName:
+                    return MatchResult.Winner, bot
 
             # debug printing
             addr = p_writer.get_extra_info('peername')

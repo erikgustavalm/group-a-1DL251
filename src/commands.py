@@ -70,6 +70,9 @@ class StartBotGame(Command):
     bot_name: str
     bot_diff: Difficulty
 
+@dataclass
+class TournamentOver(Command):
+    pass
 
 @dataclass
 class GetName(Command):
