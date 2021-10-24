@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import Enum, auto
 from color import Color
-from scoreboard import Scoreboard
+from typing import List, Tuple
 
 
 class CommandType(Enum):
@@ -76,7 +76,7 @@ class SetName(Command):
 
 @dataclass
 class DisplayScoreboard(Command):
-    scoreboard: Scoreboard
+    scoreboard: List[Tuple[str, int]]
 
 
 @dataclass

@@ -178,7 +178,10 @@ async def play_networked_match(player_name: str,
             print(f"Sent: {cmd}")
         else:
             ### remote player ###
-            cmd = pickle.loads(await reader.read(network.MAX_READ_BYTES))
+            res = await reader.read(network.MAX_READ_BYTES)
+            # print(f"num bytes: {len(res)}")
+            cmd = pickle.loads(res)
+            # print(cmd)
         
             ## TODO handle surrender and quit commands
             ## OR should the server translate those commands to something else?
@@ -231,7 +234,10 @@ async def run_networked_game(ih: input_handler.InputHandler, gh: graphics.Graphi
     op_name = None
     try:
         while True:
-            cmd = pickle.loads(await reader.read(network.MAX_READ_BYTES))
+            # print("waiting for message")
+            res = await reader.read(network.MAX_READ_BYTES)
+            # print(f"num bytes: {len(res)}")
+            cmd = pickle.loads(res)
 
             if not cmd:
                 print("connection refused")
@@ -252,7 +258,6 @@ async def run_networked_game(ih: input_handler.InputHandler, gh: graphics.Graphi
                     writer.close()
                     await writer.wait_closed()
                     return False
-
             elif isinstance(cmd, commands.OpponentDisconnected):
                 assert False, "Not yet implemented, can this happen outside a match?"
             elif isinstance(cmd, commands.DisplayScoreboard):

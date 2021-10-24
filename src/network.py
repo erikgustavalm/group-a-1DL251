@@ -10,7 +10,6 @@ from itertools import combinations
 
 import commands
 from color import Color
-from scoreboard import Scoreboard
 from port import get_port
 import os
 import errno
@@ -78,7 +77,7 @@ async def send_scoreboard_to_all(connected: List[Player], scoreboard: Scoreboard
 async def send_scoreboard_to_all(connected: List[Player], match_list: List[Match]):
     scoreboard = {}
     for (player_name, _, _) in connected:
-        scoreboard[player_name] = 0 
+        scoreboard[player_name] = 0
     for (((p1_name, _, _), (p2_name, _, _)), outcome) in match_list:
         if (outcome == 1):
             scoreboard[p1_name] += 3
@@ -87,10 +86,17 @@ async def send_scoreboard_to_all(connected: List[Player], match_list: List[Match
         elif (outcome == 0):
             scoreboard[p1_name] += 1
             scoreboard[p2_name] += 1
-    # TODO Make a fancy scoreboard and send it instead of the dictionary
-    for (_, _, writer) in connected:
-        writer.write(pickle.dumps(scoreboard))
 
+    scoreboard = sorted(
+        list(scoreboard.items()), key=lambda x: x[1], reverse=True)
+
+    encoded_scoreboard = pickle.dumps(commands.DisplayScoreboard(scoreboard))
+    print(f"num bytes: {len(encoded_scoreboard)}")
+
+    for (name, _, writer) in reversed(connected):
+        print(f"sending encoded_scoreboard to {name}")
+        writer.write(encoded_scoreboard)
+        await writer.drain()
         
 
 
@@ -129,18 +135,10 @@ async def run_tournament(connected: List[Player], max_players: int):
             await asyncio.sleep(0.1)
 
         match_list = create_and_shuffle_matches(connected)
-        
-
-        # TODO: set up a schedule with the connected players, then pick
-        # players from that schedule instead of hardcoding it
-
-        # using Group L's scoreboard manager here
-        scoreboard = Scoreboard()
 
         # TODO: maybe send the moves to all clients, where the clients not 
         # currently playing are in a spectator mode?
 
-        # TODO only loop while there are still matches left to be played
         while True:
             # choose 2 new players from the schedule
             print(len(match_list))
@@ -155,21 +153,26 @@ async def run_tournament(connected: List[Player], max_players: int):
 
             if res == MatchResult.Winner:
                 if data == player1:
-                    # player 1 won, add to their score
                     match_list[match_index] = ((player1, player2), 1)
-                    # scoreboard.add_score(get_player_ident(player1), get_player_ident(player2))
                 elif data == player2:
                     match_list[match_index] = ((player1, player2), 2)
-                    # player 2 won, add to their score
-                    # scoreboard.add_score(get_player_ident(player2), get_player_ident(player1))
                 else:
                     assert False, f"Unknown value: {data}"
-                await send_scoreboard_to_all(connected, scoreboard)
+
+                # hack for windows, doesn't like sending two messages
+                # in a row to the same writer for some reason
+                if os.name == 'nt': await asyncio.sleep(0.01)
+
+                await send_scoreboard_to_all(connected, match_list)
             elif res == MatchResult.Draw: # data is None
                 # add to both players' score
                 match_list[match_index] = ((player1, player2), 0)
-                #scoreboard.add_draw(get_player_ident(player1), get_player_ident(player2))
-                await send_scoreboard_to_all(connected, scoreboard)
+
+                # hack for windows, doesn't like sending two messages
+                # in a row to the same writer for some reason
+                if os.name == 'nt': await asyncio.sleep(0.01)
+
+                await send_scoreboard_to_all(connected, match_list)
             elif res == MatchResult.Disconnected:
                 handle_disconnect(data, match_list, connected)
                 # TODO move the exception handling for disconnections
