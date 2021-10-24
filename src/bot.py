@@ -2,17 +2,9 @@ import random
 from commands import CommandType, Command, Surrender, Place, Move, Remove
 from color import Color
 from phase import Phase
-from enum import Enum, auto
 from board import Board
 from player import Player
-
-# NOTE: doesn't need to be a class currently. Might never need to be a class?
-class Difficulty(Enum):
-    Easy = auto()
-    Medium = auto()
-    Hard = auto()
-
-_bot_names = ["hAIkon", "mAIchel", "helenAI", "sarAI"]
+from difficulty import Difficulty
 
 class Bot(Player):
     diff = None

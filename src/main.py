@@ -10,7 +10,7 @@ import bot
 from commands import CommandType
 import network
 from state import State
-from bot import Difficulty
+from difficulty import Difficulty
 from port import get_port
 from typing import Union
 from color import Color
@@ -71,16 +71,23 @@ mills = [[x - 1 for x in l] for l in mills]
 def game_init(input_handler: input_handler.InputHandler) -> game_state.GameState:
     # TODO: Change how selecting of match vs AI is done
     # playing a local match
-    print("   Please input player name (Ｗithin 15 characters):\n"
+    print("   Please input player name (Within 15 characters):\n"
           "   enter name: easy, medium, hard for AI\n"
           "   ------------------------------------------------")
 
-    p1_name = input_handler.get_input("   Player 1:  ", False)[:15]
+    p1_name = input_handler.get_input("   Player 1:  ", False)
+    if isinstance(p1_name, commands.Quit):
+        return commands.Quit()
+    p1_name = p1_name[:15]
+    
     p2_name = p1_name
     while p2_name == p1_name:
-        p2_name = input_handler.get_input("   Player 2:  ", False)[:15]
+        p2_name = input_handler.get_input("   Player 2:  ", False)
+        if isinstance(p1_name, commands.Quit):
+            return commands.Quit()
+        p2_name = p2_name[:15]
         if p2_name == p1_name:
-            print("Can't have the same name as Player 1")
+            print("Can't have the same name as Player 1, try again or type 'q' or 'quit' to return to the menu.")
 
     num_nodes = len(board_connections)
     player1 = Player(p1_name)
@@ -266,7 +273,6 @@ async def run_networked_game(ih: input_handler.InputHandler, gh: graphics.Graphi
     # writer.transport.set_write_buffer_limits(0, 0)
     print("Connected to tournament.")
 
-
     request = None
     op_name = None
     try:
@@ -285,7 +291,11 @@ async def run_networked_game(ih: input_handler.InputHandler, gh: graphics.Graphi
             print("received:", cmd)
 
             if isinstance(cmd, commands.GetName):
-                player_name = ih.get_input("   Your name:  ", False)[:15]
+                player_name = ih.get_input("   Your name:  ", False)
+                if isinstance(player_name, commands.Quit):
+                    return True
+                player_name = player_name[:15]
+
                 writer.write(pickle.dumps(commands.SetName(player_name)))
                 await writer.drain()
                 print("wrote:", commands.SetName(player_name))
@@ -327,27 +337,20 @@ def main():
     ihandler = input_handler.InputHandler()
     ghandler = graphics.GraphicsHandler()
 
-    game_start = True
-    while game_start:
+    while True:
         ghandler.display_menu()
 
         option = ihandler.get_input("   Option([ P / A / S / C / Q ]):  ")
-        if option == 'Q':
-            while game_start:
-                sure_exit = ihandler.get_input("   Sure to quit([ Y / N ]):  ")
-                if sure_exit == 'Y':
-                    print("\n   >>> Quit Game\n")
-                    game_start = False
-                elif sure_exit == 'N':
-                    break
-                else:
-                    print("   Invalid input !\n")
-                    continue
+        if isinstance(option, commands.Quit):
+            break
         elif option == 'P':
-            game_loop(ihandler, ghandler)
+            state = game_init(ihandler)
+            game_loop(ihandler, ghandler, state)
         elif option == 'A':
             ghandler.display_AI_menu()
-            level = ihandler.get_input("   Option([ E / M / H / B ]):  ")
+            level = ihandler.get_input("   Option([ E / M / H ]):  ")
+            if isinstance(level, commands.Quit):
+                continue
             print("   Option = ", level )
         elif option == 'C':
             # Broken on Windows, see https://github.com/aio-libs/aiohttp/issues/4324#issuecomment-733884349 for another "fix"
