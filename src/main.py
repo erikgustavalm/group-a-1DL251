@@ -72,7 +72,6 @@ def game_init(input_handler: input_handler.InputHandler) -> game_state.GameState
     # TODO: Change how selecting of match vs AI is done
     # playing a local match
     print("   Please input player name (Within 15 characters):\n"
-          "   enter name: easy, medium, hard for AI\n"
           "   ------------------------------------------------")
 
     p1_name = input_handler.get_input("   Player 1:  ", False)

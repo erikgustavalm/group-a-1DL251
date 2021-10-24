@@ -2,6 +2,7 @@ import random
 from commands import CommandType, Command, Surrender, Place, Move, Remove
 from color import Color
 from phase import Phase
+from enum import Enum, auto
 from board import Board
 from player import Player
 from difficulty import Difficulty
