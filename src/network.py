@@ -4,8 +4,9 @@ import socket
 from asyncio.tasks import sleep
 import random
 from concurrent.futures import FIRST_COMPLETED
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 from enum import Enum, auto
+from itertools import combinations
 
 import commands
 from color import Color
@@ -19,48 +20,110 @@ class MatchResult(Enum):
     Draw = auto()
     Disconnected = auto()
 
+Player = Tuple[str, asyncio.StreamReader, asyncio.StreamWriter]
+Match = Tuple[Tuple[Player, Player], int]
 
-PlayerConn = List[Tuple[str, asyncio.StreamReader, asyncio.StreamWriter]]
-
-def get_player_ident(p: PlayerConn):
+def get_player_ident(p: Player):
     (_,_,writer) = p
     return writer.get_extra_info('peername')
 
+async def send_game_full(writer: asyncio.StreamWriter):
+    writer.write(pickle.dumps(commands.GameIsFull()))
+    await writer.drain()
+    writer.close()
+    await writer.wait_closed()
+
 async def handle_new_client_connection(reader: asyncio.StreamReader,
                                        writer: asyncio.StreamWriter,
-                                       connected: PlayerConn,
+                                       connected: List[Player],
                                        max_players: int):
-    if await is_full(len(connected), max_players):
-        writer.write(pickle.dumps(commands.GameIsFull()))
+    if is_full(len(connected), max_players):
+        send_game_full(writer)
+        return
+    while True:
+        writer.write(pickle.dumps(commands.GetName()))
         await writer.drain()
-        writer.close()
-        await writer.wait_closed()
-        return
+        cmd = pickle.loads(await reader.read(MAX_READ_BYTES))
+        if not cmd:
+            return
 
-    writer.write(pickle.dumps(commands.GetName()))
-    await writer.drain()
-    cmd = pickle.loads(await reader.read(MAX_READ_BYTES))
-    if not cmd:
-        return
 
-    if isinstance(cmd, commands.SetName):
-        connected.append((cmd.name, reader, writer))
-    else:
-        assert False, f"Invalid command: '{cmd}'"
+        if isinstance(cmd, commands.SetName):
+            names = [name for (name, _, _) in connected]
+            if cmd.name in names:
+                continue
+            elif is_full(len(connected), max_players):
+                send_game_full(writer)
+                return
+            connected.append((cmd.name, reader, writer))
+            break
+        else:
+            assert False, f"Invalid command: '{cmd}'"
 
     # TODO handle duplicate name? here or in client?
     print(f"Connected players: {len(connected)} of {max_players}")
-
-async def send_scoreboard_to_all(connected: PlayerConn, scoreboard: Scoreboard):
+'''
+async def send_scoreboard_to_all(connected: List[Player], scoreboard: Scoreboard):
     for (_,_, writer) in connected:
-        encoded_scoreboard = commands.DisplayScoreboard(scoreboard.to_encode())
+        encoded_scoreboardV = commands.DisplayScoreboard(scoreboard.to_encode())
         writer.write(pickle.dumps(encoded_scoreboard))
+'''
 
-async def run_tournament(connected: PlayerConn, max_players: int):
+async def send_scoreboard_to_all(connected: List[Player], match_list: List[Match]):
+    scoreboard = {}
+    for (player_name, _, _) in connected:
+        scoreboard[player_name] = 0 
+    for (((p1_name, _, _), (p2_name, _, _)), outcome) in match_list:
+        if (outcome == 1):
+            scoreboard[p1_name] += 3
+        elif (outcome == 2):
+            scoreboard[p2_name] += 3
+        elif (outcome == 0):
+            scoreboard[p1_name] += 1
+            scoreboard[p2_name] += 1
+    # TODO Make a fancy scoreboard and send it instead of the dictionary
+    for (_, _, writer) in connected:
+        writer.write(pickle.dumps(scoreboard))
+
+        
+
+
+
+def next_match(match_list : List[Match]) -> Optional[Tuple[int, Match]]:
+    for idx, match in enumerate(match_list):
+        if (match[1] is None):
+            return (idx, match)
+    return None
+
+#Create a list of matches to be played
+#Each match is a tuple which contains a tuple of the players and the outcome
+#Outcome is None if match hasn't been played, 1 if player1 won, 2 if player2 won
+def create_and_shuffle_matches(connected : List[Player]) -> List[Match]:
+    match_list = (
+        list(zip(combinations(connected, 2), [None]*len(connected)))
+    )
+    random.shuffle(match_list)
+    return match_list
+
+def handle_disconnect(player_to_remove : Player, match_list : List[Match], connected : List[Player]):
+    connected.remove(player_to_remove)
+
+    indexes_to_remove = []
+    for idx, match in enumerate(match_list):
+        players, _ = match
+        if player_to_remove in players:
+            indexes_to_remove.append(idx)
+    for idx in indexes_to_remove:
+        del match_list[idx]
+
+async def run_tournament(connected: List[Player], max_players: int):
     try:
-        while not await is_full(len(connected), max_players):
+        while not is_full(len(connected), max_players):
             # TODO, necessary? will consume lots of CPU if removed
             await asyncio.sleep(0.1)
+
+        match_list = create_and_shuffle_matches(connected)
+        
 
         # TODO: set up a schedule with the connected players, then pick
         # players from that schedule instead of hardcoding it
@@ -74,36 +137,46 @@ async def run_tournament(connected: PlayerConn, max_players: int):
         # TODO only loop while there are still matches left to be played
         while True:
             # choose 2 new players from the schedule
-            player1 = connected[0]
-            player2 = connected[1]
+            print(len(match_list))
+            current_match : Optional[Tuple[int, Match]] = next_match(match_list)
+            if (current_match is None):
+                print("No more matches to be played!\n")
+                break
+            print(current_match[1][0][0], current_match[1][0][1])
+            (match_index, ((player1, player2), _)) = current_match
+
             (res, data) = await run_match(player1, player2)
 
             if res == MatchResult.Winner:
                 if data == player1:
                     # player 1 won, add to their score
-                    scoreboard.add_score(get_player_ident(player1), get_player_ident(player2))
+                    match_list[match_index] = ((player1, player2), 1)
+                    # scoreboard.add_score(get_player_ident(player1), get_player_ident(player2))
                 elif data == player2:
+                    match_list[match_index] = ((player1, player2), 2)
                     # player 2 won, add to their score
-                    scoreboard.add_score(get_player_ident(player2), get_player_ident(player1))
+                    # scoreboard.add_score(get_player_ident(player2), get_player_ident(player1))
                 else:
                     assert False, f"Unknown value: {data}"
                 await send_scoreboard_to_all(connected, scoreboard)
             elif res == MatchResult.Draw: # data is None
                 # add to both players' score
-                scoreboard.add_draw(get_player_ident(player1), get_player_ident(player2))
+                match_list[match_index] = ((player1, player2), 0)
+                #scoreboard.add_draw(get_player_ident(player1), get_player_ident(player2))
                 await send_scoreboard_to_all(connected, scoreboard)
             elif res == MatchResult.Disconnected:
+                handle_disconnect(data, match_list, connected)
                 # TODO move the exception handling for disconnections
                 # to run_tournament from run_match?
 
                 # remove the disconnected player from the game as if they
                 # had not been in the game in the first place
-                print("Disconnected, TODO")
+                print("Player " + data[0] + " disconnected!\n")
                 # assert False, "TODO"
             else:
                 assert False, f"Unknown value: {res}"
 
-        assert False, "all players should have played against each other here"
+        # assert False, "all players should have played against each other here"
 
     except KeyboardInterrupt as e:
         print(f"{type(e).__name__}, {e}")
@@ -202,7 +275,7 @@ async def run_match(
             assert False, "one of the players are not at EOF (is that OK for Connection*Error?)"
 
 
-async def is_full(num_connected: int, max_players: int) -> bool:
+def is_full(num_connected: int, max_players: int) -> bool:
     return num_connected >= max_players
 
 
@@ -221,8 +294,8 @@ def run_server():
 
     print("Starting tournament (currently 1v1)")
 
-    max_players: int = 2
-    connected: PlayerConn = []
+    max_players: int = 3
+    connected: List[Player] = []
 
     port: int = int(input("give port: "))
 
@@ -234,5 +307,5 @@ def run_server():
     loop.run_forever()
 
 
-async def accept_connections(connected: PlayerConn, max_players: int, port: int):
+async def accept_connections(connected: List[Player], max_players: int, port: int):
     await asyncio.start_server(lambda r, w: handle_new_client_connection(r, w, connected, max_players), '127.0.0.1', port)

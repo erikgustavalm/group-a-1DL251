@@ -197,7 +197,6 @@ async def run_networked_game(ih: input_handler.InputHandler, gh: graphics.Graphi
     # writer.transport.set_write_buffer_limits(0, 0)
     print("Connected to tournament.")
 
-    player_name = ih.get_input("   Your name:  ", False)[:15]
 
     request = None
     op_name = None
@@ -214,6 +213,7 @@ async def run_networked_game(ih: input_handler.InputHandler, gh: graphics.Graphi
             print("received:", cmd)
 
             if isinstance(cmd, commands.GetName):
+                player_name = ih.get_input("   Your name:  ", False)[:15]
                 writer.write(pickle.dumps(commands.SetName(player_name)))
                 await writer.drain()
                 print("wrote:", commands.SetName(player_name))
