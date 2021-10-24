@@ -149,7 +149,15 @@ async def run_tournament(connected: List[Player], max_players: int):
             print(current_match[1][0][0], current_match[1][0][1])
             (match_index, ((player1, player2), _)) = current_match
 
-            (res, data) = await run_match(player1, player2)
+            if bothBots:
+                # higher difficulty wins
+                # if same difficulty, randomize winner
+                pass
+            if atLeastOneIsbot:
+                (res, data) = await run_bot_match(player1, player1.difficulty)
+            else:
+                (res, data) = await run_match(player1, player2)
+
 
             if res == MatchResult.Winner:
                 if data == player1:
@@ -193,6 +201,63 @@ async def run_tournament(connected: List[Player], max_players: int):
         for (_, _, writer) in connected:
             writer.close()
             await writer.wait_closed()
+
+async def run_bot_match(
+        player: Tuple[str, asyncio.StreamReader, asyncio.StreamWriter],
+        botName: str,
+        botDiff: Difficulty):
+    print("bot match has started")
+
+    # TODO randomize which player gets which color,
+    # or should it be determined by the game schedule?
+
+    p_name, p_reader, p_writer = player  # current player
+
+    print(f"Black/player 1 is {p_name}: {p_writer.get_extra_info('peername')}")
+
+    try:
+        p_writer.write(pickle.dumps(commands.StartBotGame(p_name, Color.Black, botName, botDiff)))
+        await p_writer.drain()
+
+        while True:
+            read = await p_reader.read(MAX_READ_BYTES)
+            p_response = pickle.loads(read)
+            print(f"val: {p_response}")
+
+            # TODO disconnected
+            if not p_response:
+                assert False
+
+            if isinstance(p_response, commands.Lost):
+                # TODO which player is sending the Lost command?
+                # need to add a commands.Win and make sure
+                # only the real player sends it?
+                return MatchResult.Winner, (p_name, p_reader, p_writer)
+            elif isinstance(p_response, commands.Surrender):
+                # TODO same as the Lost command, who sent it?
+                return MatchResult.Winner, (p_name, p_reader, p_writer)
+            elif isinstance(p_response, commands.Draw):
+                return MatchResult.Draw, None
+            elif isinstance(p_response, commands.Quit):
+                return MatchResult.Disconnected, (p_name, p_reader, p_writer)
+
+            # debug printing
+            addr = p_writer.get_extra_info('peername')
+            print(f"Received {p_response!a} from {p_name} {addr!a}")
+
+    except (EOFError, ConnectionResetError, ConnectionAbortedError) as e:
+        # Should send "player_disconnected" message
+        # or something to the other player, so they can stop waiting
+        # (or keep waiting but in a "waiting for a new game" state)
+        # TODO return that the match was invalid and which player disconnected
+        # so the score can be cleaned up (both here and for ConnectionAbortedError)
+        # can you combine except
+        print(f"{type(e).__name__}, {e} (player disconnected?) {repr(e)}")
+        _, p_reader, p_writer = player
+        if p_reader.at_eof:
+            return MatchResult.Disconnected, player
+        else:
+            assert False, "one of the players are not at EOF (is that OK for Connection*Error?)"
 
 
 async def run_match(
