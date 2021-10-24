@@ -323,13 +323,7 @@ def run_server():
 
     # TODO: Ask host to input number of bot players
 
-    # TODO: handle bot players, just save them in the connected array
-    #       so instead of (asyncio.StreamReader, asyncio.StreamWriter),
-    #       the connected array could just have contain the bot class
-    #       instance then use isinstance to figure out if its a bot.
-    #       OR implement a .read and .write function,
-    #       that you can call just like StreamReader.read and
-    #       StreamWriter.write so just save (Bot, Bot) in the connected array.
+    # TODO: Ask host to input the difficulty level for each bot
 
     print("Starting tournament (currently 1v1)")
 
