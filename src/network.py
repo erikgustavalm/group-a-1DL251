@@ -4,7 +4,7 @@ import socket
 from asyncio.tasks import sleep
 import random
 from concurrent.futures import FIRST_COMPLETED
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Union
 from enum import Enum, auto
 from itertools import combinations
 from bot import Difficulty
@@ -27,6 +27,7 @@ class MatchResult(Enum):
     Disconnected = auto()
 
 Player = Tuple[str, asyncio.StreamReader, asyncio.StreamWriter]
+Bot = Tuple[str, Difficulty]
 Match = Tuple[Tuple[Player, Player], int]
 
 def get_player_ident(p: Player):
@@ -42,8 +43,8 @@ async def send_game_full(writer: asyncio.StreamWriter):
 async def handle_new_client_connection(reader: asyncio.StreamReader,
                                        writer: asyncio.StreamWriter,
                                        connected: List[Player],
-                                       max_players: int):
-    if is_full(len(connected), max_players):
+                                       max_real_players: int):
+    if is_full(len(connected), max_real_players):
         send_game_full(writer)
         return
     while True:
@@ -58,7 +59,7 @@ async def handle_new_client_connection(reader: asyncio.StreamReader,
             names = [name for (name, _, _) in connected]
             if cmd.name in names:
                 continue
-            elif is_full(len(connected), max_players):
+            elif is_full(len(connected), max_real_players):
                 send_game_full(writer)
                 return
             connected.append((cmd.name, reader, writer))
@@ -67,7 +68,7 @@ async def handle_new_client_connection(reader: asyncio.StreamReader,
             assert False, f"Invalid command: '{cmd}'"
 
     # TODO handle duplicate name? here or in client?
-    print(f"Connected players: {len(connected)} of {max_players}")
+    print(f"Connected players: {len(connected)} of {max_real_players}")
 '''
 async def send_scoreboard_to_all(connected: List[Player], scoreboard: Scoreboard):
     for (_,_, writer) in connected:
@@ -111,14 +112,14 @@ def next_match(match_list : List[Match]) -> Optional[Tuple[int, Match]]:
 #Create a list of matches to be played
 #Each match is a tuple which contains a tuple of the players and the outcome
 #Outcome is None if match hasn't been played, 1 if player1 won, 2 if player2 won
-def create_and_shuffle_matches(connected : List[Player]) -> List[Match]:
+def create_and_shuffle_matches(connected : List[Union[Player, Bot]]) -> List[Match]:
     match_list = (
         list(zip(combinations(connected, 2), [None]*len(connected)))
     )
     random.shuffle(match_list)
     return match_list
 
-def handle_disconnect(player_to_remove : Player, match_list : List[Match], connected : List[Player]):
+def handle_disconnect(player_to_remove : Player, match_list : List[Match], connected : List[Union[Player, Bot]]):
     connected.remove(player_to_remove)
 
     indexes_to_remove = []
@@ -129,11 +130,14 @@ def handle_disconnect(player_to_remove : Player, match_list : List[Match], conne
     for idx in indexes_to_remove:
         del match_list[idx]
 
-async def run_tournament(connected: List[Player], max_players: int):
+async def run_tournament(connected: List[Union[Player, Bot]], max_real_players: int, bots: List[Bot]):
     try:
-        while not is_full(len(connected), max_players):
+        while not is_full(len(connected), max_real_players):
             # TODO, necessary? will consume lots of CPU if removed
             await asyncio.sleep(0.1)
+
+        connected.extend(bots)
+        print(connected)
 
         match_list = create_and_shuffle_matches(connected)
 
@@ -147,7 +151,7 @@ async def run_tournament(connected: List[Player], max_players: int):
             if (current_match is None):
                 print("No more matches to be played!\n")
                 break
-            print(current_match[1][0][0], current_match[1][0][1])
+            # print(current_match[1][0][0], current_match[1][0][1])
             (match_index, ((player1, player2), _)) = current_match
 
             (res, data) = await run_match(player1, player2)
@@ -319,7 +323,7 @@ def custom_exception_handler(loop, context):
     # NOTE not calling this silences exceptions, I think
     loop.default_exception_handler(context)
 
-def get_bots(num_bots: int):
+def get_bots(num_bots: int) -> List[Bot]:
     # TODO Give bots better names
     bot_names = ["a", "b", "c", "d", "e", "f", "g", "h"]
     random.shuffle(bot_names)
@@ -334,9 +338,11 @@ def run_server():
     # we're allowing 2 for testing as the default
     max_players = get_num("Number of Total Players(3 ~ 8)", "      Invalid input !\n ", (3, 8), default = 2)
     # TODO: disallow tournament with only bots? do max_players-1 instead?
-    num_bots = get_num(f"Number of bots (0 ~ {max_players})", "      Invalid input !\n ", (0, max_players), default = 0)
+    num_bots = get_num(f"Number of bots (0 ~ {max_players})", "      Invalid input !\n ", (0, max_players), default=0)
+    
+    max_real_players = max_players - num_bots
 
-    bots = get_bots(num_bots)
+    bots: List[Bot] = get_bots(num_bots)
 
     print(f"{max_players=}, {num_bots=}, {bots=}")
 
@@ -347,21 +353,21 @@ def run_server():
     loop = asyncio.get_event_loop()
     loop.set_exception_handler(custom_exception_handler)
 
-    loop.create_task(accept_connections(connected, max_players))
-    loop.create_task(run_tournament(connected, max_players))
+    loop.create_task(accept_connections(connected, max_real_players))
+    loop.create_task(run_tournament(connected, max_real_players, bots))
 
     loop.run_forever()
 
 
-async def accept_connections(connected: List[Player], max_players: int):
+async def accept_connections(connected: List[Player], max_real_players: int):
     global server
     while True:
         port: Union[int, commands.Quit] = get_port()
         if isinstance(port, commands.Quit):
             raise TournamentEnded
         try:
-            server = await asyncio.start_server(lambda r, w: handle_new_client_connection(r, w, connected, max_players), '127.0.0.1', port)
-            print(f"Connected players: {len(connected)} of {max_players}")
+            server = await asyncio.start_server(lambda r, w: handle_new_client_connection(r, w, connected, max_real_players), '127.0.0.1', port)
+            print(f"Connected players: {len(connected)} of {max_real_players}")
             break
         except OSError as e:
             # TODO: 'raise e from e' re-raises the exception,
