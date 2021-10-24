@@ -83,17 +83,21 @@ def game_init(input_handler: input_handler.InputHandler) -> game_state.GameState
             print("Can't have the same name as Player 1")
 
     num_nodes = len(board_connections)
-    player1 = Player(p1_name, Color.Empty, START_PIECES)
-    player2 = Player(p2_name, Color.Empty, START_PIECES)
-    return game_state.GameState(player1, player2,
-                                (num_nodes, board_connections, mills))
+    player1 = Player(p1_name)
+    player2 = Player(p2_name)
 
-def game_bot_init(player1_name, bot_name, bot_diff) -> game_state.GameState:
+    gs = game_state.GameState(player1, player2,
+                              (num_nodes, board_connections, mills))
+    gs.set_color()
+    return gs
+
+def game_bot_init(player1_name, player1_color, bot_name, bot_diff) -> game_state.GameState:
     num_nodes = len(board_connections)
-    player1 = Player(player1_name, Color.Empty, START_PIECES)
-    player2 = bot.Bot(bot_name, Color.Empty, START_PIECES)
+    player1 = Player(player1_name)
+    player2 = bot.Bot(bot_name, bot_diff)
     gs = game_state.GameState(player1, player2, (num_nodes, board_connections, mills))
     player2.set_board(gs.board)
+    gs.set_color(player1_color)
     return gs
 
 def game_loop(input_handler: input_handler.InputHandler,
@@ -138,7 +142,7 @@ async def play_local_bot_match(player_name: str,
                                input_handler: input_handler.InputHandler,
                                graphics_handler: graphics.GraphicsHandler
                                ) -> bool:
-    init_state = game_bot_init(player_name, bot_name, bot_diff)
+    init_state = game_bot_init(player_name, your_color, bot_name, bot_diff)
     res = game_loop(input_handler, graphics_handler, init_state)
     writer.write(pickle.dumps(res))
     await writer.drain()

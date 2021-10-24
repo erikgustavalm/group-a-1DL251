@@ -37,16 +37,21 @@ class GameState:
             self.current_player = self.player1
 
     def set_color(self, player1_color = None):
-        # TODO: move to separate function
         if player1_color is None:
-            self.__set_color(*random.sample([self.player1, self.player2], k=2))
+            colors = [Color.Black, Color.White]
+            random.shuffle(colors)
+            self.player1.color, self.player2.color = colors
+            if self.player1.color == Color.Black:
+                self.current_player = self.player1
+            else:
+                self.current_player = self.player2
         elif player1_color == Color.Black:
-            self.player1 = Color.Black
-            self.player2 = Color.White
+            self.player1.color = Color.Black
+            self.player2.color = Color.White
             self.current_player = self.player1
         elif player1_color == Color.White:
-            self.player1 = Color.White
-            self.player2 = Color.Black
+            self.player1.color = Color.White
+            self.player2.color = Color.Black
             self.current_player = self.player2
         else:
             assert False, f"Invalid value: '{player1_color}'"

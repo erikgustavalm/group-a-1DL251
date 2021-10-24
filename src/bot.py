@@ -19,8 +19,8 @@ class Bot(Player):
     board = None
     opposite_color = None
 
-    def __init__(self, name: str, color, start_coins: int, difficulty = Difficulty.Easy):
-        super().__init__(name, color, start_coins)
+    def __init__(self, name: str, difficulty = Difficulty.Easy):
+        super().__init__(name)
         self.diff = difficulty
 
     def set_board(self, board: Board):
