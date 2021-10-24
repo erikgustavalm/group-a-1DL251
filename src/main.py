@@ -11,7 +11,7 @@ from commands import CommandType
 import network
 from state import State
 from difficulty import Difficulty
-from port import get_port
+from port import get_num
 from typing import Union
 from color import Color
 from player import Player
@@ -356,12 +356,23 @@ def main():
             if isinstance(state, commands.Quit):
                 continue
             game_loop(ihandler, ghandler, state)
+            input("Press Enter to continue.")
         elif option == 'A':
+            player_name = ihandler.get_input("   Player 1:  ", False)
+            if isinstance(player_name, commands.Quit):
+                return commands.Quit()
+            player_name = player_name[:15]
+
             ghandler.display_AI_menu()
-            level = ihandler.get_input("   Option([ E / M / H ]):  ")
-            if isinstance(level, commands.Quit):
+            res = get_num(f"Enter bot difficulty (1 = easy, 2 = medium, 3 = hard)", "      Invalid input !\n ", (1, 3), default=1)
+            if isinstance(res, commands.Quit):
                 continue
-            print("   Option = ", level )
+            bot_name = f"AI ({(Difficulty(res).name)})"
+
+            init_state = game_bot_init(player_name, None, bot_name, Difficulty(res))
+            game_loop(ihandler, ghandler, init_state)
+            input("Press Enter to continue.")
+
         elif option == 'C':
             # Broken on Windows, see https://github.com/aio-libs/aiohttp/issues/4324#issuecomment-733884349 for another "fix"
             # res = asyncio.run(run_networked_game(ihandler, ghandler))
