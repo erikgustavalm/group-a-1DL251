@@ -7,10 +7,11 @@ from concurrent.futures import FIRST_COMPLETED
 from typing import List, Optional, Tuple
 from enum import Enum, auto
 from itertools import combinations
+from bot import Difficulty
 
 import commands
 from color import Color
-from port import get_port
+from port import get_port, get_num
 import os
 import errno
 
@@ -318,16 +319,29 @@ def custom_exception_handler(loop, context):
     # NOTE not calling this silences exceptions, I think
     loop.default_exception_handler(context)
 
+def get_bots(num_bots: int):
+    # TODO Give bots better names
+    bot_names = ["a", "b", "c", "d", "e", "f", "g", "h"]
+    random.shuffle(bot_names)
+    bots = [(bot_names[bot], Difficulty(get_num(
+        f"Bot {bot+1} difficulty (1 = easy, 2 = medium, 3 = hard)", "      Invalid input !\n ",
+        (1, 3), default=1))
+    ) for bot in range(num_bots)]
+    return bots
+
 def run_server():
-    # TODO: Ask host to input max players
+    # TODO: Enforce limits between 3 and 8
+    # we're allowing 2 for testing as the default
+    max_players = get_num("Number of Total Players(3 ~ 8)", "      Invalid input !\n ", (3, 8), default = 2)
+    # TODO: disallow tournament with only bots? do max_players-1 instead?
+    num_bots = get_num(f"Number of bots (0 ~ {max_players})", "      Invalid input !\n ", (0, max_players), default = 0)
 
-    # TODO: Ask host to input number of bot players
+    bots = get_bots(num_bots)
 
-    # TODO: Ask host to input the difficulty level for each bot
+    print(f"{max_players=}, {num_bots=}, {bots=}")
 
-    print("Starting tournament (currently 1v1)")
+    print("Starting tournament")
 
-    max_players: int = 3
     connected: List[Player] = []
 
     loop = asyncio.get_event_loop()
