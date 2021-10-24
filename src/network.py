@@ -75,12 +75,12 @@ async def send_scoreboard_to_all(connected: List[Player], scoreboard: Scoreboard
         encoded_scoreboardV = commands.DisplayScoreboard(scoreboard.to_encode())
         writer.write(pickle.dumps(encoded_scoreboard))
 '''
-
-async def send_scoreboard_to_all(connected: List[Player], match_list: List[Match]):
+async def send_scoreboard_to_all(connected: List[Union[Player, Bot]], match_list: List[Match]):
     scoreboard = {}
-    for (player_name, _, _) in connected:
-        scoreboard[player_name] = 0
-    for (((p1_name, _, _), (p2_name, _, _)), outcome) in match_list:
+    for player in connected:
+        scoreboard[player[0]] = 0
+    for ((player1, player2), outcome) in match_list:
+        p1_name, p2_name = player1[0], player2[0]
         if (outcome == 1):
             scoreboard[p1_name] += 3
         elif (outcome == 2):
@@ -95,10 +95,14 @@ async def send_scoreboard_to_all(connected: List[Player], match_list: List[Match
     encoded_scoreboard = pickle.dumps(commands.DisplayScoreboard(scoreboard))
     print(f"num bytes: {len(encoded_scoreboard)}")
 
-    for (name, _, writer) in reversed(connected):
-        print(f"sending encoded_scoreboard to {name}")
-        writer.write(encoded_scoreboard)
-        await writer.drain()
+    for player in reversed(connected):
+        try:
+            (name, _, writer) = player
+            print(f"sending encoded_scoreboard to {name}")
+            writer.write(encoded_scoreboard)
+            await writer.drain()
+        except ValueError as e:
+            pass
 
 
 
@@ -170,9 +174,17 @@ async def run_tournament(connected: List[Union[Player, Bot]], max_real_players: 
                 pass
 
             if player1_is_bot and player2_is_bot: # Match is between bots
+                res = MatchResult.Winner
                 # higher difficulty wins
-                # if same difficulty, randomize winner
-                pass
+                p1_diff = player1[1]
+                p2_diff = player2[1]
+                if p1_diff < p2_diff:
+                    data = player2
+                elif p1_diff > p2_diff:
+                    data = player1
+                else:
+                    # if same difficulty, randomize winner
+                    data = random.choice([player1, player2])
             elif player1_is_bot: # Match is player1 = bot and player2 = human
                 (res, data) = await run_bot_match(player2, player1)
             elif player2_is_bot: # Match is player2 = bot and player1 = human
@@ -404,26 +416,34 @@ def custom_exception_handler(loop, context):
     # NOTE not calling this silences exceptions, I think
     loop.default_exception_handler(context)
 
-def get_bots(num_bots: int) -> List[Bot]:
+def get_bots(num_bots: int) -> Union[List[Bot], commands.Quit]:
     # TODO Give bots better names
     bot_names = ["a", "b", "c", "d", "e", "f", "g", "h"]
     random.shuffle(bot_names)
-    bots = [(bot_names[bot], Difficulty(get_num(
-        f"Bot {bot+1} difficulty (1 = easy, 2 = medium, 3 = hard)", "      Invalid input !\n ",
-        (1, 3), default=1))
-    ) for bot in range(num_bots)]
+    bots = []
+    for bot in range(num_bots):
+        res = get_num(f"Bot {bot+1} difficulty (1 = easy, 2 = medium, 3 = hard)", "      Invalid input !\n ", (1, 3), default=1)
+        if isinstance(res, commands.Quit):
+            return commands.Quit()
+        bot_tuple = (bot_names[bot], Difficulty(res))
+        bots.append(bot_tuple)
     return bots
 
 def run_server():
     # TODO: Enforce limits between 3 and 8
     # we're allowing 2 for testing as the default
-    max_players = get_num("Number of Total Players(3 ~ 8)", "      Invalid input !\n ", (3, 8), default = 2)
+    max_players = get_num("Number of Total Players(3 ~ 8)", "      Invalid input !\n ", (3, 8), default=2)
+    if isinstance(max_players, commands.Quit):
+        return
     # TODO: disallow tournament with only bots? do max_players-1 instead?
     num_bots = get_num(f"Number of bots (0 ~ {max_players})", "      Invalid input !\n ", (0, max_players), default=0)
-
+    if isinstance(num_bots, commands.Quit):
+        return
     max_real_players = max_players - num_bots
 
     bots: List[Bot] = get_bots(num_bots)
+    if isinstance(bots, commands.Quit):
+        return
 
     print(f"{max_players=}, {num_bots=}, {bots=}")
 

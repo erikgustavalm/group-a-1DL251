@@ -83,7 +83,7 @@ def game_init(input_handler: input_handler.InputHandler) -> game_state.GameState
     p2_name = p1_name
     while p2_name == p1_name:
         p2_name = input_handler.get_input("   Player 2:  ", False)
-        if isinstance(p1_name, commands.Quit):
+        if isinstance(p2_name, commands.Quit):
             return commands.Quit()
         p2_name = p2_name[:15]
         if p2_name == p1_name:
@@ -110,7 +110,6 @@ def game_bot_init(player1_name, player1_color, bot_name, bot_diff) -> game_state
 def game_loop(input_handler: input_handler.InputHandler,
               graphics_handler: graphics.GraphicsHandler,
               state: game_state.GameState):
-
     while True:
         graphics_handler.display_game([node.color for node in state.board.nodes])
 
@@ -306,7 +305,7 @@ async def run_networked_game(ih: input_handler.InputHandler, gh: graphics.Graphi
                     await writer.wait_closed()
                     return False
             elif isinstance(cmd, commands.StartBotGame):
-                res = await play_local_bot_match(player_name, cmd.your_color, writer, ih, gh)
+                res = await play_local_bot_match(player_name, cmd.your_color, cmd.bot_name, cmd.bot_diff, writer, ih, gh)
                 if not res:
                     writer.close()
                     await writer.wait_closed()
@@ -345,6 +344,8 @@ def main():
             break
         elif option == 'P':
             state = game_init(ihandler)
+            if isinstance(state, commands.Quit):
+                continue
             game_loop(ihandler, ghandler, state)
         elif option == 'A':
             ghandler.display_AI_menu()
