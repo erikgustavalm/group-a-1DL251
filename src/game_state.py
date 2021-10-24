@@ -36,14 +36,24 @@ class GameState:
         else:
             self.current_player = self.player1
 
-    def __set_color(self, black: Player, white: Player):
-        black.color = Color.Black
-        white.color = Color.White
-        self.current_player = black
+    def set_color(self, player1_color = None):
+        # TODO: move to separate function
+        if player1_color is None:
+            self.__set_color(*random.sample([self.player1, self.player2], k=2))
+        elif player1_color == Color.Black:
+            self.player1 = Color.Black
+            self.player2 = Color.White
+            self.current_player = self.player1
+        elif player1_color == Color.White:
+            self.player1 = Color.White
+            self.player2 = Color.Black
+            self.current_player = self.player2
+        else:
+            assert False, f"Invalid value: '{player1_color}'"
 
     def __init__(self,
-                 player1: str,
-                 player2: str,
+                 player1: Player,
+                 player2: Player,
                  # board: (num_nodes, adjacent_nodes, mills)
                  board: Tuple[int, List[List[int]], List[List[int]]],
                  player1_color: Color = None):
@@ -52,32 +62,11 @@ class GameState:
         self.current_turn = 1
 
         # Empty string means that the player will be bot controlled
-        if player1 == "easy":
-            self.player1 = Bot(self.board, Color.Empty, 11)
-        elif player1 == "medium":
-            self.player1 = Bot(self.board, Color.Empty, 11, Difficulty.Medium)
-        elif player1 == "hard":
-            self.player1 = Bot(self.board, Color.Empty, 11, Difficulty.Hard)
-        else:
-            self.player1 = Player(player1, Color.Empty, 11)
+        self.player1 = player1
+        self.player2 = player2
 
-        if player2 == "easy":
-            self.player2 = Bot(self.board, Color.Empty, 11)
-        elif player2 == "medium":
-            self.player2 = Bot(self.board, Color.Empty, 11, Difficulty.Medium)
-        elif player2 == "hard":
-            self.player2 = Bot(self.board, Color.Empty, 11, Difficulty.Hard)
-        else:
-            self.player2 = Player(player2, Color.Empty, 11)
 
-        if player1_color is None:
-            self.__set_color(*random.sample([self.player1, self.player2], k=2))
-        elif player1_color == Color.Black:
-            self.__set_color(black = self.player1, white = self.player2)
-        elif player1_color == Color.White:
-            self.__set_color(black = self.player2, white = self.player1)
-        else:
-            assert False, f"Invalid value: '{player1_color}'"
+
 
     def can_make_adjacent_move(self, player: Player):
         node_indexes = self.board.get_player_nodes(player)

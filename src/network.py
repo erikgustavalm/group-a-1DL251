@@ -99,7 +99,7 @@ async def send_scoreboard_to_all(connected: List[Player], match_list: List[Match
         print(f"sending encoded_scoreboard to {name}")
         writer.write(encoded_scoreboard)
         await writer.drain()
-        
+
 
 
 
@@ -141,7 +141,7 @@ async def run_tournament(connected: List[Union[Player, Bot]], max_real_players: 
 
         match_list = create_and_shuffle_matches(connected)
 
-        # TODO: maybe send the moves to all clients, where the clients not 
+        # TODO: maybe send the moves to all clients, where the clients not
         # currently playing are in a spectator mode?
 
         while True:
@@ -154,13 +154,30 @@ async def run_tournament(connected: List[Union[Player, Bot]], max_real_players: 
             # print(current_match[1][0][0], current_match[1][0][1])
             (match_index, ((player1, player2), _)) = current_match
 
-            if bothBots:
+
+            player1_is_bot = False
+            try:
+                (bot_name, bot_difficulty) = player1
+                player1_is_bot = True
+            except:
+                pass
+
+            player2_is_bot = False
+            try:
+                (bot_name, bot_difficulty) = player2
+                player2_is_bot = True
+            except:
+                pass
+
+            if player1_is_bot and player2_is_bot: # Match is between bots
                 # higher difficulty wins
                 # if same difficulty, randomize winner
                 pass
-            if atLeastOneIsbot:
-                (res, data) = await run_bot_match(player1, player1.difficulty)
-            else:
+            elif player1_is_bot: # Match is player1 = bot and player2 = human
+                (res, data) = await run_bot_match(player2, player1)
+            elif player2_is_bot: # Match is player2 = bot and player1 = human
+                (res, data) = await run_bot_match(player1, player2)
+            else: # Match between humans
                 (res, data) = await run_match(player1, player2)
 
 
@@ -209,15 +226,14 @@ async def run_tournament(connected: List[Union[Player, Bot]], max_real_players: 
 
 async def run_bot_match(
         player: Tuple[str, asyncio.StreamReader, asyncio.StreamWriter],
-        botName: str,
-        botDiff: Difficulty):
+        bot: Tuple[str,Difficulty]):
     print("bot match has started")
 
     # TODO randomize which player gets which color,
     # or should it be determined by the game schedule?
 
     p_name, p_reader, p_writer = player  # current player
-
+    botName, botDiff = bot
     print(f"Black/player 1 is {p_name}: {p_writer.get_extra_info('peername')}")
 
     try:
@@ -404,7 +420,7 @@ def run_server():
     max_players = get_num("Number of Total Players(3 ~ 8)", "      Invalid input !\n ", (3, 8), default = 2)
     # TODO: disallow tournament with only bots? do max_players-1 instead?
     num_bots = get_num(f"Number of bots (0 ~ {max_players})", "      Invalid input !\n ", (0, max_players), default=0)
-    
+
     max_real_players = max_players - num_bots
 
     bots: List[Bot] = get_bots(num_bots)

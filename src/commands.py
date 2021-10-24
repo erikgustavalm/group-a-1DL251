@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from enum import Enum, auto
 from color import Color
 from typing import List, Tuple
-
+from bot import Difficulty
 
 class CommandType(Enum):
     Move = auto()
@@ -62,6 +62,13 @@ class Lost(Command):
 class StartGame(Command):
     op_name: str
     your_color: Color
+
+@dataclass
+class StartBotGame(Command):
+    op_name: str
+    your_color: Color
+    bot_name: str
+    bot_diff: Difficulty
 
 
 @dataclass

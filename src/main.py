@@ -10,10 +10,13 @@ import bot
 from commands import CommandType
 import network
 from state import State
+from bot import Difficulty
 from port import get_port
 from typing import Union
+from color import Color
+from player import Player
 
-
+START_PIECES = 11
 board_connections = list({
     1: [2, 4, 10],
     2: [1, 3, 5],
@@ -65,7 +68,9 @@ mills = [
 mills = [[x - 1 for x in l] for l in mills]
 
 
-def game_loop(input_handler: input_handler.InputHandler, graphics_handler: graphics.GraphicsHandler):
+def game_init(input_handler: input_handler.InputHandler) -> game_state.GameState:
+    # TODO: Change how selecting of match vs AI is done
+    # playing a local match
     print("   Please input player name (Ｗithin 15 characters):\n"
           "   enter name: easy, medium, hard for AI\n"
           "   ------------------------------------------------")
@@ -78,8 +83,22 @@ def game_loop(input_handler: input_handler.InputHandler, graphics_handler: graph
             print("Can't have the same name as Player 1")
 
     num_nodes = len(board_connections)
-    state = game_state.GameState(p1_name, p2_name,
-                                 (num_nodes, board_connections, mills))
+    player1 = Player(p1_name, Color.Empty, START_PIECES)
+    player2 = Player(p2_name, Color.Empty, START_PIECES)
+    return game_state.GameState(player1, player2,
+                                (num_nodes, board_connections, mills))
+
+def game_bot_init(player1_name, bot_name, bot_diff) -> game_state.GameState:
+    num_nodes = len(board_connections)
+    player1 = Player(player1_name, Color.Empty, START_PIECES)
+    player2 = bot.Bot(bot_name, Color.Empty, START_PIECES)
+    gs = game_state.GameState(player1, player2, (num_nodes, board_connections, mills))
+    player2.set_board(gs.board)
+    return gs
+
+def game_loop(input_handler: input_handler.InputHandler,
+              graphics_handler: graphics.GraphicsHandler,
+              state: game_state.GameState):
 
     while True:
         graphics_handler.display_game([node.color for node in state.board.nodes])
@@ -87,10 +106,10 @@ def game_loop(input_handler: input_handler.InputHandler, graphics_handler: graph
         current_state = state.next()
         if current_state == CommandType.Lost:
             graphics_handler.display_winner(state.get_opponent())
-            return
+            return state.get_opponent().name
         elif current_state == CommandType.Draw:
             graphics_handler.display_draw()
-            return
+            return commands.Draw()
 
         graphics_handler.display_status(state.player1, state.player2, state.current_turn, state.current_player)
         graphics_handler.display_messages()
@@ -103,14 +122,28 @@ def game_loop(input_handler: input_handler.InputHandler, graphics_handler: graph
             cmd = input_handler.get_command(current_state)
 
         if isinstance(cmd, commands.Quit):
-            return
+            return cmd
         elif isinstance(cmd, commands.Surrender):
             print(f"    {state.current_player.name} ({graphics.color_to_ascii(state.current_player.color)}): surrendered the game!")
             graphics_handler.display_winner(state.get_opponent())
-            return
+            return cmd
 
         state.try_command(cmd, graphics_handler)
 
+async def play_local_bot_match(player_name: str,
+                               your_color: str,
+                               bot_name: str,
+                               bot_diff: Difficulty,
+                               writer: asyncio.StreamWriter,
+                               input_handler: input_handler.InputHandler,
+                               graphics_handler: graphics.GraphicsHandler
+                               ) -> bool:
+    init_state = game_bot_init(player_name, bot_name, bot_diff)
+    res = game_loop(input_handler, graphics_handler, init_state)
+    writer.write(pickle.dumps(res))
+    await writer.drain()
+
+    return not isinstance(res, commands.Quit)
 
 async def play_networked_match(player_name: str,
                                op_name: str,
@@ -157,7 +190,7 @@ async def play_networked_match(player_name: str,
             res = State.Invalid
             while res == State.Invalid:
                 cmd = input_handler.get_command(current_state)
-                
+
                 # TODO handling of Quit and Surrender is duplicated
                 if isinstance(cmd, commands.Quit):
                     writer.write(pickle.dumps(cmd))
@@ -182,7 +215,7 @@ async def play_networked_match(player_name: str,
             # print(f"num bytes: {len(res)}")
             cmd = pickle.loads(res)
             # print(cmd)
-        
+
             ## TODO handle surrender and quit commands
             ## OR should the server translate those commands to something else?
             if isinstance(cmd, commands.Quit):
@@ -258,6 +291,13 @@ async def run_networked_game(ih: input_handler.InputHandler, gh: graphics.Graphi
                     writer.close()
                     await writer.wait_closed()
                     return False
+            elif isinstance(cmd, commands.StartBotGame):
+                res = await play_local_bot_match(player_name, cmd.your_color, writer, ih, gh)
+                if not res:
+                    writer.close()
+                    await writer.wait_closed()
+                    return False
+                # TODO: what is this?
             elif isinstance(cmd, commands.OpponentDisconnected):
                 assert False, "Not yet implemented, can this happen outside a match?"
             elif isinstance(cmd, commands.DisplayScoreboard):
