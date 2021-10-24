@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from enum import Enum, auto
 from color import Color
 from typing import List, Tuple
-from bot import Difficulty
+from difficulty import Difficulty
 
 class CommandType(Enum):
     Move = auto()

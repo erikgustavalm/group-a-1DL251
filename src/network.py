@@ -7,7 +7,7 @@ from concurrent.futures import FIRST_COMPLETED
 from typing import List, Optional, Tuple, Union
 from enum import Enum, auto
 from itertools import combinations
-from bot import Difficulty
+from difficulty import Difficulty
 
 import commands
 from color import Color

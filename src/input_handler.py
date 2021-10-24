@@ -1,5 +1,6 @@
 from commands import Command, Place, Surrender, Quit, Remove, Move, CommandType
 import os
+from typing import Union
 
 def flush_input():
     if os.name == 'nt':
@@ -23,10 +24,12 @@ class InputHandler:
         self._quit = quitting
         self._limits = limits
 
-    def get_input(self, question: str, to_upper=True) -> str:
+    def get_input(self, question: str, to_upper=True) -> Union[str, Quit]:
         while True:
             flush_input()
             response = input(question)
+            if response.upper() in self._quit:
+                return Quit()
             if len(response) >= 1:
                 break
         return response.upper() if to_upper else response
@@ -42,10 +45,10 @@ class InputHandler:
 
     def get_command(self, cmd: CommandType) -> Command:
         response = self.get_input(self._make_question(cmd))
-        if response in self._surrender:
-            return Surrender()
-        elif response in self._quit:
+        if isinstance(response, Quit):
             return Quit()
+        elif response in self._surrender:
+            return Surrender()
 
         if cmd == CommandType.Place:
             try:
