@@ -175,13 +175,6 @@ async def run_tournament(connected: List[Union[Player, Bot]], max_real_players: 
             except:
                 pass
 
-            if p1_score == p2_score:
-                if p1_name <= p2_name:
-                    # player 1 came before player 2
-                if p1_name > p2_name:
-                    # player 2 came before player 1
-
-
 
             if player1_is_bot and player2_is_bot:  # Match is between bots
                 await asyncio.sleep(0.5) # NOTE keep it from printing the result instantly
