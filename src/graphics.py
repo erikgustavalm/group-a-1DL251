@@ -51,9 +51,9 @@ class GraphicsHandler:
         display_small_title(self)
         print("    >>>                   AI Level                   <<<\n\n"
               "    ┌──────────────┐  ┌──────────────┐  ┌──────────────┐\n"
-              "    │   Easy [E]   │  │ Moderate [M] │  │   Hard [H]   │\n"
+              "    │   Easy [1]   │  │ Moderate [2] │  │   Hard [3]   │\n"
               "    └──────────────┘  └──────────────┘  └──────────────┘\n\n\n"
-              "    ───────────────   Back to Menu [B]   ───────────────\n\n")
+              "    ───────────────   Back to Menu [Q]   ───────────────\n\n")
     
     def display_start_tournament(self):
         display_tournament(self)

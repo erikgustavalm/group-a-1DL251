@@ -3,8 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import Enum, auto
 from color import Color
-from scoreboard import Scoreboard
-
+from typing import List, Tuple
+from difficulty import Difficulty
 
 class CommandType(Enum):
     Move = auto()
@@ -63,6 +63,16 @@ class StartGame(Command):
     op_name: str
     your_color: Color
 
+@dataclass
+class StartBotGame(Command):
+    p_name: str
+    your_color: Color
+    bot_name: str
+    bot_diff: Difficulty
+
+@dataclass
+class TournamentOver(Command):
+    pass
 
 @dataclass
 class GetName(Command):
@@ -76,7 +86,7 @@ class SetName(Command):
 
 @dataclass
 class DisplayScoreboard(Command):
-    scoreboard: Scoreboard
+    scoreboard: List[Tuple[str, int]]
 
 
 @dataclass

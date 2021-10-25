@@ -5,23 +5,18 @@ from phase import Phase
 from enum import Enum, auto
 from board import Board
 from player import Player
-
-# NOTE: doesn't need to be a class currently. Might never need to be a class?
-class Difficulty(Enum):
-    Easy = auto()
-    Medium = auto()
-    Hard = auto()
-
-_bot_names = ["hAIkon", "mAIchel", "helenAI", "sarAI"]
+from difficulty import Difficulty
 
 class Bot(Player):
     diff = None
     board = None
     opposite_color = None
 
-    def __init__(self, board: Board, color, start_coins, difficulty = Difficulty.Easy):
-        super().__init__(random.choice(_bot_names) + f"[{difficulty.name}]", color, start_coins)
+    def __init__(self, name: str, difficulty = Difficulty.Easy):
+        super().__init__(name)
         self.diff = difficulty
+
+    def set_board(self, board: Board):
         self.board = board
 
     def _best_place(self) -> Command:
