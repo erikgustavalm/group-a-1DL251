@@ -26,7 +26,7 @@ class Surrender(Command):
 
 
 @dataclass
-class Quit(Command):
+class Exit(Command):
     pass
 
 
