@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Tuple
 from color import Color
 
 from player import Player
@@ -17,6 +17,11 @@ def display_small_title(self):
           "   ║                       UU-Game                       ║\n"
           "   ╚═════════════════════════════════════════════════════╝\n ")
 
+def display_small_tournament(self):
+    print("   ╔═══════════════════════════════════════════════════════════════╗\n"
+          "   ║                           Tournament                          ║\n"
+          "   ╚═══════════════════════════════════════════════════════════════╝\n ")
+    
 def display_tournament(self):
     print("  ╔══════════════════════════════════════════════════════════════════════════════════════════╗\n"
           "  ║                                        Tournament                                        ║\n"
@@ -27,6 +32,36 @@ def display_big_title(self):
     print("  ╔═════════════════════════════════════════════════════════════════════════════════════════╗\n"
           "  ║                                         UU-Game                                         ║\n"
           "  ╚═════════════════════════════════════════════════════════════════════════════════════════╝\n")    
+
+# TODO
+"""def get_SBrank(self, scoreboard:List[Tuple[str, int]]) -> List[]:
+    # rank of scoreboard
+    rank = []
+    num = len(scoreboard)
+    i = 0
+    now_rank = 1
+        
+    while i < num-1: 
+        same_score = 0
+        same_add_self = False
+        for j in range(i+1, num):    
+            if scoreboard[i][1] == scoreboard[j][1]:
+                if same_add_self == False:
+                    rank.append(now_rank)
+                    same_add_self = True
+                same_score += 1
+                rank.append(now_rank)
+                    
+        if same_score > 0:
+            now_rank += (same_score)
+            i += same_score
+        else:
+            rank.append(now_rank)
+            i += 1
+                    
+        now_rank += 1
+    
+    return rank"""
 
 class GraphicsHandler:
     _messages: [str] = []
@@ -59,11 +94,55 @@ class GraphicsHandler:
         display_tournament(self)
         print("      >>>                         Total Player Number: 3 ~ 8                         <<< \n\n"
               "       ┌───                                                                           \n"
-              "       │         If [ Number of Real Players ] < [ Total Number of Players ],         \n"
-              "                               AI Bot will be used as a substitute                   │\n"
+              "       │                       Should be at least 1 real player                      │\n"
               "                                                                                  ───┘\n\n"
               "      ─────────────────────────────────  Please Input  ─────────────────────────────────\n")
         
+    def display_scoreboard(self, scoreboard):
+        
+        """
+        num = len(scoreboard)
+        rank = get_SBrank(scoreboard)
+        """
+        
+        # rank of scoreboard
+        num = len(scoreboard)
+        rank = []
+        i = 0
+        now_rank = 1
+        
+        while i < num: 
+            same_score = 0
+            same_add_self = False
+            for j in range(i+1, num):    
+                if scoreboard[i][1] == scoreboard[j][1]:
+                    if same_add_self == False:
+                        rank.append(now_rank)
+                        same_add_self = True
+                    same_score += 1
+                    rank.append(now_rank)
+                    
+            if same_score > 0:
+                now_rank += (same_score)
+                i += same_score
+            else:
+                rank.append(now_rank)
+                i += 1
+                    
+            now_rank += 1
+        
+        display_small_tournament(self)
+        print("    ─────────────────────────  ScoreBoard  ─────────────────────────\n\n"
+              "           ┌─────────────┬─────────────────┬──────────────┐\n"
+              "           │   Ranking   │   Player name   │     Score    │")
+        for idx in range(num):
+            count = idx
+            print(f"           ├─────────────┼─────────────────┼──────────────┤\n"
+                  f"           │      {rank[count]}      │ {scoreboard[count][0]:15s} │       {scoreboard[count][1]}      │" )
+        
+        print("           └─────────────┴─────────────────┴──────────────┘\n")
+    
+   
     def display_status(self, player1: Player, player2: Player, current_turn, current_player: Player):
         if current_player.color == player1.color:
             p1_turn = " ──>"; p2_turn = "    "
@@ -79,6 +158,7 @@ class GraphicsHandler:
               "  %s  │ %-15s( %s ) │   %2d pieces left   │\n"
               "        └───────────────────────┴────────────────────┘\n" % (p1_turn, player1.name, color_to_ascii(player1.color), player1.coins_left_to_place, p2_turn, player2.name, color_to_ascii(player2.color), player2.coins_left_to_place))
 
+    
     def display_game(self, board: [Color]):
         # NOTE: Modifies board variable destructively (contents change outside function)
         for idx, c in enumerate(board):
@@ -125,6 +205,12 @@ class GraphicsHandler:
             print(message)
         self._messages = []
 
+    # TODO    
+    def display_tourn_winner(self):
+        print("     ┌───                                  \n"
+              "     │       Final winner:                │\n"
+              "                                       ───┘\n")
+    
     def display_winner(self, player: Player):
         print("               ^ _______________________________________________ ^\n"
               "              /                                                   \\\n"
