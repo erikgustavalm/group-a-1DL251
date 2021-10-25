@@ -11,7 +11,7 @@ from commands import CommandType
 import network
 from state import State
 from difficulty import Difficulty
-from port import get_num
+from port import get_num, get_port
 from typing import Union
 from color import Color
 from player import Player
@@ -316,14 +316,17 @@ async def run_networked_game(ih: input_handler.InputHandler, gh: graphics.Graphi
                 assert False, "Not yet implemented, can this happen outside a match?"
             elif isinstance(cmd, commands.DisplayScoreboard):
                 print("DISPLAY SPECTATOR SCOREBOARD (will display the same for all players, even the ones that just finished a match)")
-                # TODO: nicer printing of scoreboard
+                # add scoreboard
                 prev_scoreboard = cmd.scoreboard
                 print(cmd.scoreboard)
+                gh.display_scoreboard(cmd.scoreboard)
             elif isinstance(cmd, commands.TournamentOver):
                 print("TOURNAMENT IS OVER")
                 # TODO: nicer printing of scoreboard
+                gh.display_tourn_winner()
+                """
                 if prev_scoreboard:
-                    print(prev_scoreboard)
+                    print(prev_scoreboard)"""
                 input("Press Enter to continue.")
                 return True
             else:
