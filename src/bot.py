@@ -266,7 +266,6 @@ class Bot(Player):
     def get_command(self, cmd: CommandType, curr_phase: Phase) -> Command:
         self.opposite_color = Color.Black if self.color == Color.White else Color.White
 
-
         if cmd == CommandType.Remove:
             return self._remove_cmd()
         elif curr_phase == Phase.One:

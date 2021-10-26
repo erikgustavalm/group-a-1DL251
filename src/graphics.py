@@ -69,7 +69,7 @@ class GraphicsHandler:
     def add_message(self, message: str):
         self._messages.append(message)
 
-    
+
     def display_menu(self):
         display_big_title(self)
         print("      >>>                                   M E N U                                  <<<\n\n"

@@ -1,4 +1,4 @@
-from commands import Command, Place, Surrender, Quit, Remove, Move, CommandType
+from commands import Command, Place, Surrender, Exit, Remove, Move, CommandType
 import os
 from typing import Union
 
@@ -13,23 +13,23 @@ def flush_input():
 
 class InputHandler:
     _surrender = None
-    _quit = None
+    _exit = None
     _limits = None
 
     def __init__(self,
                  surrendering=["S", "SURRENDER"],
-                 quitting=["Q", "QUIT"],
+                 exiting=["E", "EXIT"],
                  limits=(0, 23)):
         self._surrender = surrendering
-        self._quit = quitting
+        self._exit = exiting
         self._limits = limits
 
-    def get_input(self, question: str, to_upper=True) -> Union[str, Quit]:
+    def get_input(self, question: str, to_upper=True) -> Union[str, Exit]:
         while True:
             flush_input()
             response = input(question)
-            if response.upper() in self._quit:
-                return Quit()
+            if response.upper() in self._exit:
+                return Exit()
             if len(response) >= 1:
                 break
         return response.upper() if to_upper else response
@@ -45,8 +45,8 @@ class InputHandler:
 
     def get_command(self, cmd: CommandType) -> Command:
         response = self.get_input(self._make_question(cmd))
-        if isinstance(response, Quit):
-            return Quit()
+        if isinstance(response, Exit):
+            return Exit()
         elif response in self._surrender:
             return Surrender()
 
