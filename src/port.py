@@ -6,6 +6,8 @@ def get_num(question: str, err_msg: str, limit: (int, int), default: int) -> Uni
         res = input(f"{question} (default: {default}): ").lower()
         if res == "e" or res == "exit":
             return commands.Exit()
+        if res == "q" or res == "quit":
+            exit()
         if res == "":
             return default
         try:

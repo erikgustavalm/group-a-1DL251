@@ -134,7 +134,7 @@ def handle_disconnect(player_to_remove : Player, match_list : List[Match], conne
         players, _ = match
         if player_to_remove in players:
             indexes_to_remove.append(idx)
-    for idx in indexes_to_remove:
+    for idx in sorted(indexes_to_remove, reverse=True):
         del match_list[idx]
 
 async def run_tournament(connected: List[Union[Player, Bot]], max_real_players: int, bots: List[Bot]):
@@ -229,6 +229,12 @@ async def run_tournament(connected: List[Union[Player, Bot]], max_real_players: 
                 # remove the disconnected player from the game as if they
                 # had not been in the game in the first place
                 print("Player " + data[0] + " disconnected!\n")
+
+                # let the other player know the player disconnected 
+                if data == player1:
+                    player2[2].write(pickle.dumps(commands.OpponentDisconnected()))
+                else:
+                    player1[2].write(pickle.dumps(commands.OpponentDisconnected()))
                 # assert False, "TODO"
             else:
                 assert False, f"Unknown value: {res}"

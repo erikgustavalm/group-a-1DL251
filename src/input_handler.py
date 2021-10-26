@@ -15,14 +15,17 @@ class InputHandler:
     _surrender = None
     _exit = None
     _limits = None
+    _quit = None
 
     def __init__(self,
                  surrendering=["S", "SURRENDER"],
                  exiting=["E", "EXIT"],
+                 quitting=["Q", "Quit"],
                  limits=(0, 23)):
         self._surrender = surrendering
         self._exit = exiting
         self._limits = limits
+        self._quit = quitting
 
     def get_input(self, question: str, to_upper=True) -> Union[str, Exit]:
         while True:
@@ -30,6 +33,8 @@ class InputHandler:
             response = input(question)
             if response.upper() in self._exit:
                 return Exit()
+            elif response.upper() in self._quit:
+                exit()
             if len(response) >= 1:
                 break
         return response.upper() if to_upper else response
