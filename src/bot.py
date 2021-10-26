@@ -19,6 +19,18 @@ class Bot(Player):
     def set_board(self, board: Board):
         self.board = board
 
+    def _skip_false(self, node, adj, rating, mod):
+        if node == 0 and adj == 3:
+            return rating
+        if node == 2 and adj == 5:
+            return rating
+        if node == 22 and adj == 18:
+            return rating
+        if node == 23 and adj == 20:
+            return rating
+
+        return rating + mod
+
     def _best_place(self) -> Command:
         # Rate the placings, so we can find the best
         pos_place = self.board.get_nodes(Color.Empty)
@@ -30,13 +42,13 @@ class Bot(Player):
             for other in self.board.get_nodes_of_color(self.color):
                 for adj in node.adjacents:
                     if adj is other:
-                        rating = rating + 1
+                        rating = self._skip_false(node.idx, adj, rating, 1)
 
             # Give rating if the placing will destroy opponents adjacents
             for other in self.board.get_nodes(self.opposite_color):
                 for adj in other.adjacents:
                     if adj is node.idx:
-                        rating = rating + 1
+                        rating = self._skip_false(node.idx, adj, rating, 1)
 
             # Give rating for creating mill
             if self.board.potential_is_part_of_mill(node.idx, self.color):
@@ -89,13 +101,13 @@ class Bot(Player):
             for other in self.board.get_nodes_of_color(self.color):
                 for adj in node.adjacents:
                     if adj is other:
-                        rating = rating + 1
+                        rating = self._skip_false(node.idx, adj, rating, 1)
 
             # Give rating if the placing will destroy opponents adjacents
             for other in self.board.get_nodes(self.opposite_color):
                 for adj in other.adjacents:
                     if adj is node.idx:
-                        rating = rating + 1
+                        rating = self._skip_false(node.idx, adj, rating, 1)
 
             # Give rating for destroying oponents mill
             if self.board.potential_is_part_of_mill(node.idx, self.opposite_color):
@@ -142,24 +154,24 @@ class Bot(Player):
                 # Give points to moving close to others of same color
                 for adj in self.board.nodes[node_to].adjacents:
                     if other is adj:
-                        rating = rating + 1
+                        rating = self._skip_false(node_to, adj, rating, 1)
 
                 # Reduce points for moving away from others of same color
                 for adj in self.board.nodes[node_from].adjacents:
                     if other is adj:
-                        rating = rating - 1
+                        rating = self._skip_false(node_from, adj, rating, -1)
 
 
             for other in self.board.get_nodes_of_color(self.opposite_color):
                 # Give points for blocking opponent
                 for adj in self.board.nodes[node_to].adjacents:
                     if other is adj:
-                        rating = rating + 1
+                        rating = self._skip_false(node_to, adj, rating, 1)
 
                 # Reduce points if stop blocking opponent
                 for adj in self.board.nodes[node_from].adjacents:
                     if other is adj:
-                        rating = rating - 1
+                        rating = self._skip_false(node_from, adj, rating, -1)
 
             # Give rating for creating mill
             if self.board.potential_is_part_of_mill(node_to, self.color):
@@ -210,23 +222,23 @@ class Bot(Player):
                 # Give points to moving close to others of same color
                 for adj in self.board.nodes[node_to].adjacents:
                     if other is adj:
-                        rating = rating + 1
+                        rating = self._skip_false(node_to, adj, rating, 1)
 
                 # Reduce points for moving away from others of same color
                 for adj in self.board.nodes[node_from].adjacents:
                     if other is adj:
-                        rating = rating - 1
+                        rating = self._skip_false(node_from, adj, rating, -1)
 
             for other in self.board.get_nodes_of_color(self.opposite_color):
                 # Give points for blocking opponent
                 for adj in self.board.nodes[node_to].adjacents:
                     if other is adj:
-                        rating = rating + 1
+                        rating = self._skip_false(node_to, adj, rating, 1)
 
                 # Reduce points if stop blocking opponent
                 for adj in self.board.nodes[node_from].adjacents:
                     if other is adj:
-                        rating = rating - 1
+                        rating = self._skip_false(node_from, adj, rating, -1)
 
             # Give rating for creating mill
             if self.board.potential_is_part_of_mill(node_to, self.color):
