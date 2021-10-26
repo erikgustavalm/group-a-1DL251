@@ -45,7 +45,7 @@ async def handle_new_client_connection(reader: asyncio.StreamReader,
                                        connected: List[Player],
                                        max_real_players: int):
     if is_full(len(connected), max_real_players):
-        send_game_full(writer)
+        await send_game_full(writer)
         return
     while True:
         writer.write(pickle.dumps(commands.GetName()))
@@ -75,12 +75,12 @@ async def send_scoreboard_to_all(connected: List[Player], scoreboard: Scoreboard
         encoded_scoreboardV = commands.DisplayScoreboard(scoreboard.to_encode())
         writer.write(pickle.dumps(encoded_scoreboard))
 '''
-
-async def send_scoreboard_to_all(connected: List[Player], match_list: List[Match]):
+def calc_scoreboard(connected: List[Union[Player, Bot]], match_list: List[Match]) -> List[Tuple[str, int]]:
     scoreboard = {}
-    for (player_name, _, _) in connected:
-        scoreboard[player_name] = 0
-    for (((p1_name, _, _), (p2_name, _, _)), outcome) in match_list:
+    for player in connected:
+        scoreboard[player[0]] = 0
+    for ((player1, player2), outcome) in match_list:
+        p1_name, p2_name = player1[0], player2[0]
         if (outcome == 1):
             scoreboard[p1_name] += 3
         elif (outcome == 2):
@@ -90,15 +90,23 @@ async def send_scoreboard_to_all(connected: List[Player], match_list: List[Match
             scoreboard[p2_name] += 1
 
     scoreboard = sorted(
-        list(scoreboard.items()), key=lambda x: x[1], reverse=True)
+        list(scoreboard.items()), key=lambda x: (x[1], x[0]), reverse=True)
 
+    return scoreboard
+
+async def send_scoreboard_to_all(connected: List[Union[Player, Bot]], match_list: List[Match]):
+    scoreboard: List[Tuple[str, int]] = calc_scoreboard(connected, match_list)
     encoded_scoreboard = pickle.dumps(commands.DisplayScoreboard(scoreboard))
     print(f"num bytes: {len(encoded_scoreboard)}")
 
-    for (name, _, writer) in reversed(connected):
-        print(f"sending encoded_scoreboard to {name}")
-        writer.write(encoded_scoreboard)
-        await writer.drain()
+    for player in reversed(connected):
+        try:
+            (name, _, writer) = player
+            print(f"sending encoded_scoreboard to {name}")
+            writer.write(encoded_scoreboard)
+            await writer.drain()
+        except ValueError as e:
+            pass
 
 
 
@@ -112,10 +120,9 @@ def next_match(match_list : List[Match]) -> Optional[Tuple[int, Match]]:
 #Create a list of matches to be played
 #Each match is a tuple which contains a tuple of the players and the outcome
 #Outcome is None if match hasn't been played, 1 if player1 won, 2 if player2 won
-def create_and_shuffle_matches(connected : List[Union[Player, Bot]]) -> List[Match]:
-    match_list = (
-        list(zip(combinations(connected, 2), [None]*len(connected)))
-    )
+def create_and_shuffle_matches(connected: List[Union[Player, Bot]]) -> List[Match]:
+    combs = list(combinations(connected, 2))
+    match_list = (list(zip(combs, [None]*len(combs))))
     random.shuffle(match_list)
     return match_list
 
@@ -137,7 +144,6 @@ async def run_tournament(connected: List[Union[Player, Bot]], max_real_players: 
             await asyncio.sleep(0.1)
 
         connected.extend(bots)
-        print(connected)
 
         match_list = create_and_shuffle_matches(connected)
 
@@ -169,10 +175,20 @@ async def run_tournament(connected: List[Union[Player, Bot]], max_real_players: 
             except:
                 pass
 
-            if player1_is_bot and player2_is_bot: # Match is between bots
+
+            if player1_is_bot and player2_is_bot:  # Match is between bots
+                await asyncio.sleep(0.5) # NOTE keep it from printing the result instantly
+                res = MatchResult.Winner
                 # higher difficulty wins
-                # if same difficulty, randomize winner
-                pass
+                p1_diff = player1[1]
+                p2_diff = player2[1]
+                if p1_diff < p2_diff:
+                    data = player2
+                elif p1_diff > p2_diff:
+                    data = player1
+                else:
+                    # if same difficulty, randomize winner
+                    data = random.choice([player1, player2])
             elif player1_is_bot: # Match is player1 = bot and player2 = human
                 (res, data) = await run_bot_match(player2, player1)
             elif player2_is_bot: # Match is player2 = bot and player1 = human
@@ -191,7 +207,8 @@ async def run_tournament(connected: List[Union[Player, Bot]], max_real_players: 
 
                 # hack for windows, doesn't like sending two messages
                 # in a row to the same writer for some reason
-                if os.name == 'nt': await asyncio.sleep(0.01)
+                # if os.name == 'nt':
+                await asyncio.sleep(0.1)
 
                 await send_scoreboard_to_all(connected, match_list)
             elif res == MatchResult.Draw: # data is None
@@ -200,7 +217,8 @@ async def run_tournament(connected: List[Union[Player, Bot]], max_real_players: 
 
                 # hack for windows, doesn't like sending two messages
                 # in a row to the same writer for some reason
-                if os.name == 'nt': await asyncio.sleep(0.01)
+                # if os.name == 'nt':
+                await asyncio.sleep(0.1)
 
                 await send_scoreboard_to_all(connected, match_list)
             elif res == MatchResult.Disconnected:
@@ -214,6 +232,27 @@ async def run_tournament(connected: List[Union[Player, Bot]], max_real_players: 
                 # assert False, "TODO"
             else:
                 assert False, f"Unknown value: {res}"
+            # TODO hack to get the socket buffer to empty
+            # it doesn't seem to like sending multiple messages in a row
+            await asyncio.sleep(0.1)
+
+        # TODO hack to get the socket buffer to empty
+        # it doesn't seem to like sending multiple messages in a row
+        await asyncio.sleep(0.1)
+
+        scoreboard = calc_scoreboard(connected, match_list)
+        for player in connected:
+            try:
+                (name, _, writer) = player
+                print(f"sending TournamentOver to {name}")
+                writer.write(pickle.dumps(commands.TournamentOver()))
+                await writer.drain()
+                writer.close()
+                await writer.wait_closed()
+            except ValueError as e:
+                pass
+
+        print(scoreboard)
 
         raise TournamentEnded
         # assert False, "all players should have played against each other here"
@@ -253,14 +292,20 @@ async def run_bot_match(
                 # TODO which player is sending the Lost command?
                 # need to add a commands.Win and make sure
                 # only the real player sends it?
+                assert False, "Never going to happen"
                 return MatchResult.Winner, (p_name, p_reader, p_writer)
             elif isinstance(p_response, commands.Surrender):
                 # TODO same as the Lost command, who sent it?
-                return MatchResult.Winner, (p_name, p_reader, p_writer)
+                return MatchResult.Winner, bot
             elif isinstance(p_response, commands.Draw):
                 return MatchResult.Draw, None
-            elif isinstance(p_response, commands.Quit):
+            elif isinstance(p_response, commands.Exit):
                 return MatchResult.Disconnected, (p_name, p_reader, p_writer)
+            else:
+                if p_response == p_name:
+                    return MatchResult.Winner, (p_name, p_reader, p_writer)
+                elif p_response == botName:
+                    return MatchResult.Winner, bot
 
             # debug printing
             addr = p_writer.get_extra_info('peername')
@@ -345,7 +390,7 @@ async def run_match(
             elif isinstance(cp_response, commands.Draw):
                 # False if the match ended in a draw.
                 return MatchResult.Draw, None
-            elif isinstance(cp_response, commands.Quit):
+            elif isinstance(cp_response, commands.Exit):
                 return MatchResult.Disconnected, (cp_name, cp_reader, cp_writer)
 
             # debug printing
@@ -404,26 +449,34 @@ def custom_exception_handler(loop, context):
     # NOTE not calling this silences exceptions, I think
     loop.default_exception_handler(context)
 
-def get_bots(num_bots: int) -> List[Bot]:
+def get_bots(num_bots: int) -> Union[List[Bot], commands.Exit]:
     # TODO Give bots better names
     bot_names = ["a", "b", "c", "d", "e", "f", "g", "h"]
     random.shuffle(bot_names)
-    bots = [(bot_names[bot], Difficulty(get_num(
-        f"Bot {bot+1} difficulty (1 = easy, 2 = medium, 3 = hard)", "      Invalid input !\n ",
-        (1, 3), default=1))
-    ) for bot in range(num_bots)]
+    bots = []
+    for bot in range(num_bots):
+        res = get_num(f"Bot {bot+1} difficulty (1 = easy, 2 = medium, 3 = hard)", "      Invalid input !", (1, 3), default=1)
+        if isinstance(res, commands.Exit):
+            return commands.Exit()
+        bot_tuple = (bot_names[bot], Difficulty(res))
+        bots.append(bot_tuple)
     return bots
 
 def run_server():
     # TODO: Enforce limits between 3 and 8
     # we're allowing 2 for testing as the default
-    max_players = get_num("Number of Total Players(3 ~ 8)", "      Invalid input !\n ", (3, 8), default = 2)
+    max_players = get_num("Number of Total Players(3 ~ 8)", "      Invalid input !", (3, 8), default=2)
+    if isinstance(max_players, commands.Exit):
+        return
     # TODO: disallow tournament with only bots? do max_players-1 instead?
-    num_bots = get_num(f"Number of bots (0 ~ {max_players})", "      Invalid input !\n ", (0, max_players), default=0)
-
+    num_bots = get_num(f"Number of bots (0 ~ {max_players})", "      Invalid input !", (0, max_players), default=0)
+    if isinstance(num_bots, commands.Exit):
+        return
     max_real_players = max_players - num_bots
 
     bots: List[Bot] = get_bots(num_bots)
+    if isinstance(bots, commands.Exit):
+        return
 
     print(f"{max_players=}, {num_bots=}, {bots=}")
 
@@ -434,7 +487,8 @@ def run_server():
     loop = asyncio.get_event_loop()
     loop.set_exception_handler(custom_exception_handler)
 
-    loop.create_task(accept_connections(connected, max_real_players))
+    if max_real_players > 0:
+        loop.create_task(accept_connections(connected, max_real_players))
     loop.create_task(run_tournament(connected, max_real_players, bots))
 
     loop.run_forever()
@@ -443,8 +497,8 @@ def run_server():
 async def accept_connections(connected: List[Player], max_real_players: int):
     global server
     while True:
-        port: Union[int, commands.Quit] = get_port()
-        if isinstance(port, commands.Quit):
+        port: Union[int, commands.Exit] = get_port()
+        if isinstance(port, commands.Exit):
             raise TournamentEnded
         try:
             server = await asyncio.start_server(lambda r, w: handle_new_client_connection(r, w, connected, max_real_players), '127.0.0.1', port)
@@ -457,4 +511,4 @@ async def accept_connections(connected: List[Player], max_real_players: int):
                 or os.name == 'posix' and e.errno != errno.EADDRINUSE
                     or os.name not in ['posix', 'nt']):
                 raise
-            print("Port already in use, try again or type 'quit' or 'q' to go back to the menu")
+            print("Port already in use, try again or type 'exit' or 'e' to go back to the menu")

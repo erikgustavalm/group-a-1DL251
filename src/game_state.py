@@ -71,8 +71,6 @@ class GameState:
         self.player2 = player2
 
 
-
-
     def can_make_adjacent_move(self, player: Player):
         node_indexes = self.board.get_player_nodes(player)
         for idx in node_indexes:

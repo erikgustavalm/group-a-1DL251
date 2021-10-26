@@ -26,7 +26,7 @@ class Surrender(Command):
 
 
 @dataclass
-class Quit(Command):
+class Exit(Command):
     pass
 
 
@@ -65,11 +65,14 @@ class StartGame(Command):
 
 @dataclass
 class StartBotGame(Command):
-    op_name: str
+    p_name: str
     your_color: Color
     bot_name: str
     bot_diff: Difficulty
 
+@dataclass
+class TournamentOver(Command):
+    pass
 
 @dataclass
 class GetName(Command):

@@ -2,6 +2,7 @@ import random
 from commands import CommandType, Command, Surrender, Place, Move, Remove
 from color import Color
 from phase import Phase
+from enum import Enum, auto
 from board import Board
 from player import Player
 from difficulty import Difficulty
@@ -276,7 +277,6 @@ class Bot(Player):
 
     def get_command(self, cmd: CommandType, curr_phase: Phase) -> Command:
         self.opposite_color = Color.Black if self.color == Color.White else Color.White
-
 
         if cmd == CommandType.Remove:
             return self._remove_cmd()
