@@ -19,7 +19,7 @@ class Bot(Player):
     def set_board(self, board: Board):
         self.board = board
 
-    def _skip_false(node, adj, rating, mod):
+    def _skip_false(self, node, adj, rating, mod):
         if node == 0 and adj == 3:
             return rating
         if node == 2 and adj == 5:
