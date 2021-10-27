@@ -52,24 +52,28 @@ async def handle_new_client_connection(reader: asyncio.StreamReader,
         await send_game_full(writer)
         return
     while True:
-        writer.write(pickle.dumps(commands.GetName()))
-        await writer.drain()
-        cmd = pickle.loads(await reader.read(MAX_READ_BYTES))
-        if not cmd:
-            return
-
-
-        if isinstance(cmd, commands.SetName):
-            names = [name for (name, _, _) in connected]
-            if cmd.name in names:
-                continue
-            elif is_full(len(connected), max_real_players):
-                send_game_full(writer)
+        try:
+            writer.write(pickle.dumps(commands.GetName()))
+            await writer.drain()
+            res = await reader.read(MAX_READ_BYTES)
+            if not res:
                 return
-            connected.append((cmd.name, reader, writer))
-            break
-        else:
-            assert False, f"Invalid command: '{cmd}'"
+            cmd = pickle.loads(res)
+
+
+            if isinstance(cmd, commands.SetName):
+                names = [tup[0] for tup in connected]
+                if cmd.name in names:
+                    continue
+                elif is_full(len(connected), max_real_players):
+                    send_game_full(writer)
+                    return
+                connected.append((cmd.name, reader, writer))
+                break
+            else:
+                assert False, f"Invalid command: '{cmd}'"
+        except:
+            return
 
     print(f"Connected players: {len(connected)} of {max_real_players}")
 
@@ -143,12 +147,10 @@ def handle_disconnect(player_to_remove : Player, match_list : List[Match], conne
     for idx in sorted(indexes_to_remove, reverse=True):
         del match_list[idx]
 
-async def run_tournament(connected: List[Union[Player, Bot]], max_real_players: int, bots: List[Bot]):
+async def run_tournament(connected: List[Union[Player, Bot]], max_players: int, bots: List[Bot]):
     try:
-        while not is_full(len(connected), max_real_players):
+        while not is_full(len(connected), max_players):
             await asyncio.sleep(0.1)
-
-        connected.extend(bots)
 
         match_list = create_and_shuffle_matches(connected)
 
@@ -444,13 +446,14 @@ def run_server():
     print("Starting tournament")
 
     connected: List[Player] = []
+    connected.extend(bots)
 
     loop = asyncio.get_event_loop()
     loop.set_exception_handler(custom_exception_handler)
 
     if max_real_players > 0:
-        loop.create_task(accept_connections(connected, max_real_players))
-    loop.create_task(run_tournament(connected, max_real_players, bots))
+        loop.create_task(accept_connections(connected, max_players))
+    loop.create_task(run_tournament(connected, max_players, bots))
 
     loop.run_forever()
 
