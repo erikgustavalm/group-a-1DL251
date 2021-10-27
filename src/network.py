@@ -3,11 +3,14 @@ import asyncio
 import socket
 from asyncio.tasks import sleep
 import random
+import graphics
 from concurrent.futures import FIRST_COMPLETED
 from typing import List, Optional, Tuple, Union
 from enum import Enum, auto
 from itertools import combinations
 from difficulty import Difficulty
+
+
 
 import commands
 from color import Color
@@ -25,6 +28,7 @@ class MatchResult(Enum):
     Winner = auto()
     Draw = auto()
     Disconnected = auto()
+    BotMatchDisconnected = auto()
 
 Player = Tuple[str, asyncio.StreamReader, asyncio.StreamWriter]
 Bot = Tuple[str, Difficulty]
@@ -68,12 +72,9 @@ async def handle_new_client_connection(reader: asyncio.StreamReader,
             assert False, f"Invalid command: '{cmd}'"
 
     print(f"Connected players: {len(connected)} of {max_real_players}")
-'''
-async def send_scoreboard_to_all(connected: List[Player], scoreboard: Scoreboard):
-    for (_,_, writer) in connected:
-        encoded_scoreboardV = commands.DisplayScoreboard(scoreboard.to_encode())
-        writer.write(pickle.dumps(encoded_scoreboard))
-'''
+
+
+# Calculate the scores from the match history
 def calc_scoreboard(connected: List[Union[Player, Bot]], match_list: List[Match]) -> List[Tuple[str, int]]:
     scoreboard = {}
     for player in connected:
@@ -96,7 +97,6 @@ def calc_scoreboard(connected: List[Union[Player, Bot]], match_list: List[Match]
 async def send_scoreboard_to_all(connected: List[Union[Player, Bot]], match_list: List[Match]):
     scoreboard: List[Tuple[str, int]] = calc_scoreboard(connected, match_list)
     encoded_scoreboard = pickle.dumps(commands.DisplayScoreboard(scoreboard))
-    print(f"num bytes: {len(encoded_scoreboard)}")
 
     for player in reversed(connected):
         try:
@@ -133,7 +133,7 @@ def handle_disconnect(player_to_remove : Player, match_list : List[Match], conne
         players, _ = match
         if player_to_remove in players:
             indexes_to_remove.append(idx)
-    for idx in indexes_to_remove:
+    for idx in sorted(indexes_to_remove, reverse=True):
         del match_list[idx]
 
 async def run_tournament(connected: List[Union[Player, Bot]], max_real_players: int, bots: List[Bot]):
@@ -224,6 +224,16 @@ async def run_tournament(connected: List[Union[Player, Bot]], max_real_players: 
                 # remove the disconnected player from the game as if they
                 # had not been in the game in the first place
                 print("Player " + data[0] + " disconnected!\n")
+                # let the other player know the player disconnected 
+                if data == player1:
+                    player2[2].write(pickle.dumps(commands.OpponentDisconnected()))
+                elif data == player2:
+                    player1[2].write(pickle.dumps(commands.OpponentDisconnected()))
+                # assert False, "TODO"
+            elif res == MatchResult.BotMatchDisconnected:
+                print("Player " + data[0] + " disconnected!\n")
+                handle_disconnect(data, match_list, connected)
+
             else:
                 assert False, f"Unknown value: {res}"
             # NOTE hack to get the socket buffer to empty
@@ -245,8 +255,9 @@ async def run_tournament(connected: List[Union[Player, Bot]], max_real_players: 
                 await writer.wait_closed()
             except ValueError as e:
                 pass
-
-        print(scoreboard)
+        
+        ghandler = graphics.GraphicsHandler()
+        ghandler.display_scoreboard(scoreboard)
 
         raise TournamentEnded
         # assert False, "all players should have played against each other here"
@@ -262,9 +273,6 @@ async def run_bot_match(
         bot: Tuple[str,Difficulty]):
     print("bot match has started")
 
-    # TODO randomize which player gets which color,
-    # or should it be determined by the game schedule?
-
     p_name, p_reader, p_writer = player  # current player
     botName, botDiff = bot
     print(f"Black/player 1 is {p_name}: {p_writer.get_extra_info('peername')}")
@@ -278,9 +286,8 @@ async def run_bot_match(
             p_response = pickle.loads(read)
             print(f"val: {p_response}")
 
-            # TODO disconnected
             if not p_response:
-                assert False
+                return MatchResult.BotMatchDisconnected, (p_name, p_reader, p_writer)
 
             if isinstance(p_response, commands.Lost):
                 assert False, "Never going to happen"
@@ -290,7 +297,7 @@ async def run_bot_match(
             elif isinstance(p_response, commands.Draw):
                 return MatchResult.Draw, None
             elif isinstance(p_response, commands.Exit):
-                return MatchResult.Disconnected, (p_name, p_reader, p_writer)
+                return MatchResult.BotMatchDisconnected, (p_name, p_reader, p_writer)
             else:
                 if p_response == p_name:
                     return MatchResult.Winner, (p_name, p_reader, p_writer)
@@ -298,14 +305,14 @@ async def run_bot_match(
                     return MatchResult.Winner, bot
 
             # debug printing
-            addr = p_writer.get_extra_info('peername')
-            print(f"Received {p_response!a} from {p_name} {addr!a}")
+            # addr = p_writer.get_extra_info('peername')
+            # print(f"Received {p_response!a} from {p_name} {addr!a}")
 
     except (EOFError, ConnectionResetError, ConnectionAbortedError) as e:
         print(f"{type(e).__name__}, {e} (player disconnected?) {repr(e)}")
         _, p_reader, p_writer = player
         if p_reader.at_eof:
-            return MatchResult.Disconnected, player
+            return MatchResult.BotMatchDisconnected, player
         else:
             assert False, "one of the players are not at EOF (is that OK for Connection*Error?)"
 
@@ -342,16 +349,13 @@ async def run_match(
                 cp_response = pickle.loads(cp_read_task.result())
                 print(f"(current) cp_read_task done first, val: {cp_response}")
             if op_read_task in done:
-                cp_response = pickle.loads(op_read_task.result())
                 # swap current and other player since it's the same player as last loop iteration
                 cp_name, op_name = op_name, cp_name
                 cp_reader, op_reader = op_reader, cp_reader
                 cp_writer, op_writer = op_writer, cp_writer
-                print(f"(other) op_read_task done first (so switched op and cp), val: {cp_response}")
 
-            # TODO disconnected
-            if not cp_response:
-                assert False
+                cp_response = pickle.loads(op_read_task.result())
+                print(f"(other) op_read_task done first (so switched op and cp), val: {cp_response}")
 
             if isinstance(cp_response, commands.Lost):
                 return MatchResult.Winner, (op_name, op_reader, op_writer)
@@ -380,20 +384,7 @@ async def run_match(
             #await asyncio.sleep(1.0)
 
     except (EOFError, ConnectionResetError, ConnectionAbortedError) as e:
-        print(f"{type(e).__name__}, {e} (player disconnected?) {repr(e)}")
-        _, p1_reader, p1_writer = p1
-        _, p2_reader, p2_writer = p2
-        if p1_reader.at_eof:
-            p1_writer.write(pickle.dumps(commands.OpponentDisconnected()))
-            await p1_writer.drain()
-            return MatchResult.Disconnected, p1
-        elif p2_reader.at_eof:
-            p2_writer.write(pickle.dumps(commands.OpponentDisconnected()))
-            await p2_writer.drain()
-            return MatchResult.Disconnected, p2
-        else:
-            assert False, "one of the players are not at EOF (is that OK for Connection*Error?)"
-
+        return MatchResult.Disconnected, (cp_name, cp_reader, cp_writer)
 
 def is_full(num_connected: int, max_players: int) -> bool:
     return num_connected >= max_players
@@ -416,7 +407,9 @@ def custom_exception_handler(loop, context):
 
 def get_bots(num_bots: int) -> Union[List[Bot], commands.Exit]:
     # TODO Give bots better names
-    bot_names = ["AI_a", "AI_b", "AI_c", "AI_d", "AI_e", "AI_f", "AI_g", "AI_h"]
+
+    bot_names = ["BOT-James", "BOT-Charles", "BOT-Jane", "BOT-Claire", "BOT-Dave", "BOT-Richard", "BOT-Elizabeth", "BOT-Gösta"]
+
     random.shuffle(bot_names)
     bots = []
     for bot in range(num_bots):
