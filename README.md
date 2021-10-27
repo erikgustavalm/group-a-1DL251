@@ -25,6 +25,9 @@ There are four cases in which the game can end:
 ## Dependencies
 + python version: 3.9
 
+## Responsbility
++ whole code was written by Group A
+
 ## How to play the game?
 Players can choose to play game **Local** or **Online** in menu, which contains to play with real players or AI bots.
 + Local: 
