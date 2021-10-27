@@ -288,7 +288,7 @@ async def run_networked_game(ih: input_handler.InputHandler, gh: graphics.Graphi
             cmd = pickle.loads(res)
 
 
-            print("received:", cmd)
+            # print("received:", cmd)
 
             if isinstance(cmd, commands.GetName):
                 player_name = ih.get_input("   Your name:  ", False)
