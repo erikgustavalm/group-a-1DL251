@@ -291,7 +291,6 @@ async def run_bot_match(
             p_response = pickle.loads(read)
             print(f"val: {p_response}")
 
-            # TODO disconnected
             if not p_response:
                 return MatchResult.BotMatchDisconnected, (p_name, p_reader, p_writer)
 
@@ -365,16 +364,13 @@ async def run_match(
                 cp_response = pickle.loads(cp_read_task.result())
                 print(f"(current) cp_read_task done first, val: {cp_response}")
             if op_read_task in done:
-                cp_response = pickle.loads(op_read_task.result())
                 # swap current and other player since it's the same player as last loop iteration
                 cp_name, op_name = op_name, cp_name
                 cp_reader, op_reader = op_reader, cp_reader
                 cp_writer, op_writer = op_writer, cp_writer
-                print(f"(other) op_read_task done first (so switched op and cp), val: {cp_response}")
 
-            # TODO disconnected
-            if not cp_response:
-                assert False
+                cp_response = pickle.loads(op_read_task.result())
+                print(f"(other) op_read_task done first (so switched op and cp), val: {cp_response}")
 
             if isinstance(cp_response, commands.Lost):
                 # TODO handle this
