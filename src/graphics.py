@@ -81,7 +81,7 @@ class GraphicsHandler:
         for idx in range(num):
             count = idx
             print(f"           ├─────────────┼─────────────────┼──────────────┤\n"
-                  f"           │      {count+1}      │ {scoreboard[count][0]:15s} │       {scoreboard[count][1]}      │" )
+                  f"           │      {count+1}      │ {scoreboard[count][0]:15s} │      {scoreboard[count][1]:2d}      │" )
         
         print("           └─────────────┴─────────────────┴──────────────┘\n")
     
