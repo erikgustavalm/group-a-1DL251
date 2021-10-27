@@ -265,6 +265,8 @@ async def run_networked_game(ih: input_handler.InputHandler, gh: graphics.Graphi
 
     request = None
     op_name = None
+
+    sent_name = False
     try:
         while True:
             # print("waiting for message")
@@ -281,6 +283,8 @@ async def run_networked_game(ih: input_handler.InputHandler, gh: graphics.Graphi
             # print("received:", cmd)
 
             if isinstance(cmd, commands.GetName):
+                if sent_name:
+                    print("That name is already taken, try again!");
                 player_name = ih.get_input("   Your name:  ", False)
                 if isinstance(player_name, commands.Exit):
                     return True
@@ -289,6 +293,7 @@ async def run_networked_game(ih: input_handler.InputHandler, gh: graphics.Graphi
                 writer.write(pickle.dumps(commands.SetName(player_name)))
                 await writer.drain()
                 print("wrote:", commands.SetName(player_name))
+                sent_name = True
             elif isinstance(cmd, commands.StartGame):
                 res = await play_networked_match(player_name, cmd.op_name, cmd.your_color, reader, writer, ih, gh)
                 if not res:
@@ -307,7 +312,7 @@ async def run_networked_game(ih: input_handler.InputHandler, gh: graphics.Graphi
                 print("DISPLAY SPECTATOR SCOREBOARD (will display the same for all players, even the ones that just finished a match)")
                 # add scoreboard
                 prev_scoreboard = cmd.scoreboard
-                print(cmd.scoreboard)
+                # print(cmd.scoreboard)
                 gh.display_scoreboard(cmd.scoreboard)
             elif isinstance(cmd, commands.TournamentOver):
                 print("TOURNAMENT IS OVER")
