@@ -312,10 +312,8 @@ async def run_networked_game(ih: input_handler.InputHandler, gh: graphics.Graphi
             elif isinstance(cmd, commands.TournamentOver):
                 print("TOURNAMENT IS OVER")
                 # TODO: nicer printing of scoreboard
-                gh.display_tourn_winner()
-                """
                 if prev_scoreboard:
-                    print(prev_scoreboard)"""
+                    gh.display_tourn_winner(prev_scoreboard)
                 input("Press Enter to continue.")
                 return True
             else:

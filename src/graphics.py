@@ -23,9 +23,9 @@ def display_small_tournament(self):
           "   ╚═══════════════════════════════════════════════════════════════╝\n ")
     
 def display_tournament(self):
-    print("  ╔══════════════════════════════════════════════════════════════════════════════════════════╗\n"
-          "  ║                                        Tournament                                        ║\n"
-          "  ╚══════════════════════════════════════════════════════════════════════════════════════════╝\n\n")
+    print("  ╔══════════════════════════════════════════════════════════════════════════════════════╗\n"
+          "  ║                                      Tournament                                      ║\n"
+          "  ╚══════════════════════════════════════════════════════════════════════════════════════╝\n\n")
     
 def display_big_title(self):
     # Game title
@@ -33,35 +33,6 @@ def display_big_title(self):
           "  ║                                         UU-Game                                         ║\n"
           "  ╚═════════════════════════════════════════════════════════════════════════════════════════╝\n")    
 
-# TODO
-"""def get_SBrank(self, scoreboard:List[Tuple[str, int]]) -> List[]:
-    # rank of scoreboard
-    rank = []
-    num = len(scoreboard)
-    i = 0
-    now_rank = 1
-        
-    while i < num-1: 
-        same_score = 0
-        same_add_self = False
-        for j in range(i+1, num):    
-            if scoreboard[i][1] == scoreboard[j][1]:
-                if same_add_self == False:
-                    rank.append(now_rank)
-                    same_add_self = True
-                same_score += 1
-                rank.append(now_rank)
-                    
-        if same_score > 0:
-            now_rank += (same_score)
-            i += same_score
-        else:
-            rank.append(now_rank)
-            i += 1
-                    
-        now_rank += 1
-    
-    return rank"""
 
 class GraphicsHandler:
     _messages: [str] = []
@@ -99,46 +70,18 @@ class GraphicsHandler:
               "      ─────────────────────────────────  Please Input  ─────────────────────────────────\n")
         
     def display_scoreboard(self, scoreboard):
-        
-        """
+
         num = len(scoreboard)
-        rank = get_SBrank(scoreboard)
-        """
-        
-        # rank of scoreboard
-        num = len(scoreboard)
-        rank = []
-        i = 0
-        now_rank = 1
-        
-        while i < num: 
-            same_score = 0
-            same_add_self = False
-            for j in range(i+1, num):    
-                if scoreboard[i][1] == scoreboard[j][1]:
-                    if same_add_self == False:
-                        rank.append(now_rank)
-                        same_add_self = True
-                    same_score += 1
-                    rank.append(now_rank)
-                    
-            if same_score > 0:
-                now_rank += (same_score)
-                i += same_score
-            else:
-                rank.append(now_rank)
-                i += 1
-                    
-            now_rank += 1
         
         display_small_tournament(self)
         print("    ─────────────────────────  ScoreBoard  ─────────────────────────\n\n"
+              "            Ties are decided in reverse alphabetical order\n"
               "           ┌─────────────┬─────────────────┬──────────────┐\n"
               "           │   Ranking   │   Player name   │     Score    │")
         for idx in range(num):
             count = idx
             print(f"           ├─────────────┼─────────────────┼──────────────┤\n"
-                  f"           │      {rank[count]}      │ {scoreboard[count][0]:15s} │       {scoreboard[count][1]}      │" )
+                  f"           │      {count+1}      │ {scoreboard[count][0]:15s} │       {scoreboard[count][1]}      │" )
         
         print("           └─────────────┴─────────────────┴──────────────┘\n")
     
@@ -206,11 +149,18 @@ class GraphicsHandler:
         self._messages = []
 
     # TODO    
-    def display_tourn_winner(self):
-        print("     ┌───                                  \n"
-              "     │       Final winner:                │\n"
-              "                                       ───┘\n")
-    
+    def display_tourn_winner(self, scoreboard):
+        print("                           _.+._\n"
+              "                         (^\/^\/^)\n"
+              "                          \@*@*@/\n"
+              "                          {_____}\n\n"
+              "      -  Ties are decided in reverse alphabetical order  -\n\n"
+              "      ┌───                                      \n"
+              f"      │              Final winner: {scoreboard[0][0]:15s}\n"
+              "      │                                                  │ \n"
+              f"                     Points: {scoreboard[0][1]:2d}                          │\n"
+              "                                                      ───┘\n")
+        
     def display_winner(self, player: Player):
         print("               ^ _______________________________________________ ^\n"
               "              /                                                   \\\n"
