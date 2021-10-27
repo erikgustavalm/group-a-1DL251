@@ -25,7 +25,7 @@ There are four cases in which the game can end:
 ## Dependencies
 + python version: 3.9
 
-## How to pay the game?
+## How to play the game?
 Players can choose to play game **Local** or **Online** in menu, which contains to play with real players or AI bots.
 + Local: 
   1. Play with 1 player
