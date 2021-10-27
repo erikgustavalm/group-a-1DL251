@@ -39,21 +39,24 @@ Players can choose to play game **Local** or **Online** in menu, which contains 
 
 ## Interface
 ### Menu:
-<img width="664" alt="螢幕快照 2021-10-27 下午5 21 37" src="https://user-images.githubusercontent.com/50803416/139099485-a92aa480-26a8-418f-9ac8-fb520faded9a.png">
+<img width="700" alt="螢幕快照 2021-10-27 下午5 21 37" src="https://user-images.githubusercontent.com/50803416/139099485-a92aa480-26a8-418f-9ac8-fb520faded9a.png">
 
 
 ### Loacl - Play with AI bot:
-<img width="491" alt="螢幕快照 2021-10-27 下午5 22 00" src="https://user-images.githubusercontent.com/50803416/139099525-ffbb7b4e-3d83-4221-bae2-aed121bbe46b.png">
+<img width="700" alt="螢幕快照 2021-10-27 下午5 22 00" src="https://user-images.githubusercontent.com/50803416/139099525-ffbb7b4e-3d83-4221-bae2-aed121bbe46b.png">
 
 
 ### Online - Start a new server:
-<img width="888" alt="螢幕快照 2021-10-27 下午5 37 43" src="https://user-images.githubusercontent.com/50803416/139099602-ee3afa89-02bb-42df-be5b-2edf25d8aad1.png">
+<img width="1000" alt="螢幕快照 2021-10-27 下午5 37 43" src="https://user-images.githubusercontent.com/50803416/139099602-ee3afa89-02bb-42df-be5b-2edf25d8aad1.png">
 
-  #### ScoreBoard: <img width="510" alt="螢幕快照 2021-10-27 下午5 39 07" src="https://user-images.githubusercontent.com/50803416/139099851-bfc21e10-51b4-4974-8d65-4993631e4dd7.png">
-  #### Tournment end: <img width="449" alt="螢幕快照 2021-10-27 下午5 39 19" src="https://user-images.githubusercontent.com/50803416/139099996-91e317dc-0c14-435a-b02b-b1262e1b519d.png">
+  #### ScoreBoard:
+  <img width="700" alt="螢幕快照 2021-10-27 下午5 39 07" src="https://user-images.githubusercontent.com/50803416/139099851-bfc21e10-51b4-4974-8d65-4993631e4dd7.png">
+  
+  #### Tournment end:
+  <img width="700" alt="螢幕快照 2021-10-27 下午5 39 19" src="https://user-images.githubusercontent.com/50803416/139099996-91e317dc-0c14-435a-b02b-b1262e1b519d.png">
 
 
 ### Board:
-<img width="444" alt="螢幕快照 2021-10-27 下午5 21 11" src="https://user-images.githubusercontent.com/50803416/139099616-5b5995df-5fd7-47d9-a467-91d26a1d0c6e.png">
+<img width="700" alt="螢幕快照 2021-10-27 下午5 21 11" src="https://user-images.githubusercontent.com/50803416/139099616-5b5995df-5fd7-47d9-a467-91d26a1d0c6e.png">
 
 
