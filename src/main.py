@@ -69,8 +69,6 @@ mills = [[x - 1 for x in l] for l in mills]
 
 
 def game_init(input_handler: input_handler.InputHandler) -> game_state.GameState:
-    # TODO: Change how selecting of match vs AI is done
-    # playing a local match
     print("   Please input player name (Within 15 characters):\n"
           "   ------------------------------------------------")
 
@@ -124,7 +122,6 @@ def game_loop(input_handler: input_handler.InputHandler,
         graphics_handler.display_messages()
 
         print(f"   Player {state.current_player.name} ({graphics.color_to_ascii(state.current_player.color)}): It's your turn now ")
-        # TODO: may need rework
         if  isinstance(state.current_player, bot.Bot):
             cmd = state.current_player.get_command(current_state, state.current_phase(state.current_player))
         else:
@@ -225,8 +222,6 @@ async def play_networked_match(player_name: str,
             cmd = pickle.loads(res)
             # print(cmd)
 
-            ## TODO handle surrender and exit commands
-            ## OR should the server translate those commands to something else?
             if isinstance(cmd, commands.Exit):
                 print(f"   {state.current_player.name} ({graphics.color_to_ascii(state.current_player.color)}): exit from game!")
                 graphics_handler.display_winner(state.get_opponent())
@@ -242,10 +237,7 @@ async def play_networked_match(player_name: str,
             elif isinstance(cmd, commands.DisplayScoreboard):
                 assert False, "BUG: Shouldn't get a display scoreboard command during a match"
             elif isinstance(cmd, commands.Lost):
-                # TODO does this message need to be handled on the client?
-                # or is it enough for the server to deal with it?
-                # the game state should already know it's over
-                assert False, "Not yet implemented"
+                assert False, "BUG: Shouldn't happen"
 
 
             print(f"try_command with {cmd}")
@@ -255,7 +247,6 @@ async def play_networked_match(player_name: str,
 
 
 async def run_networked_game(ih: input_handler.InputHandler, gh: graphics.GraphicsHandler) -> bool:
-    # TODO better port handling, don't crash if invalid int
     while True:
         port: Union[int, commands.Exit] = get_port()
         if isinstance(port, commands.Exit):
@@ -311,9 +302,8 @@ async def run_networked_game(ih: input_handler.InputHandler, gh: graphics.Graphi
                     writer.close()
                     await writer.wait_closed()
                     return False
-                # TODO: what is this?
             elif isinstance(cmd, commands.OpponentDisconnected):
-                assert False, "Not yet implemented, can this happen outside a match?"
+                assert False, "BUG: can't this happen outside a match?"
             elif isinstance(cmd, commands.DisplayScoreboard):
                 print("DISPLAY SPECTATOR SCOREBOARD (will display the same for all players, even the ones that just finished a match)")
                 # add scoreboard
