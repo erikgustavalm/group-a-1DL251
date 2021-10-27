@@ -71,7 +71,6 @@ async def handle_new_client_connection(reader: asyncio.StreamReader,
         else:
             assert False, f"Invalid command: '{cmd}'"
 
-    # TODO handle duplicate name? here or in client?
     print(f"Connected players: {len(connected)} of {max_real_players}")
 
 
@@ -140,15 +139,11 @@ def handle_disconnect(player_to_remove : Player, match_list : List[Match], conne
 async def run_tournament(connected: List[Union[Player, Bot]], max_real_players: int, bots: List[Bot]):
     try:
         while not is_full(len(connected), max_real_players):
-            # TODO, necessary? will consume lots of CPU if removed
             await asyncio.sleep(0.1)
 
         connected.extend(bots)
 
         match_list = create_and_shuffle_matches(connected)
-
-        # TODO: maybe send the moves to all clients, where the clients not
-        # currently playing are in a spectator mode?
 
         while True:
             # choose 2 new players from the schedule
@@ -229,7 +224,6 @@ async def run_tournament(connected: List[Union[Player, Bot]], max_real_players: 
                 # remove the disconnected player from the game as if they
                 # had not been in the game in the first place
                 print("Player " + data[0] + " disconnected!\n")
-
                 # let the other player know the player disconnected 
                 if data == player1:
                     player2[2].write(pickle.dumps(commands.OpponentDisconnected()))
@@ -239,13 +233,14 @@ async def run_tournament(connected: List[Union[Player, Bot]], max_real_players: 
             elif res == MatchResult.BotMatchDisconnected:
                 print("Player " + data[0] + " disconnected!\n")
                 handle_disconnect(data, match_list, connected)
+
             else:
                 assert False, f"Unknown value: {res}"
-            # TODO hack to get the socket buffer to empty
+            # NOTE hack to get the socket buffer to empty
             # it doesn't seem to like sending multiple messages in a row
             await asyncio.sleep(0.1)
 
-        # TODO hack to get the socket buffer to empty
+        # NOTE hack to get the socket buffer to empty
         # it doesn't seem to like sending multiple messages in a row
         await asyncio.sleep(0.1)
 
@@ -295,13 +290,9 @@ async def run_bot_match(
                 return MatchResult.BotMatchDisconnected, (p_name, p_reader, p_writer)
 
             if isinstance(p_response, commands.Lost):
-                # TODO which player is sending the Lost command?
-                # need to add a commands.Win and make sure
-                # only the real player sends it?
                 assert False, "Never going to happen"
                 return MatchResult.Winner, (p_name, p_reader, p_writer)
             elif isinstance(p_response, commands.Surrender):
-                # TODO same as the Lost command, who sent it?
                 return MatchResult.Winner, bot
             elif isinstance(p_response, commands.Draw):
                 return MatchResult.Draw, None
@@ -318,12 +309,6 @@ async def run_bot_match(
             # print(f"Received {p_response!a} from {p_name} {addr!a}")
 
     except (EOFError, ConnectionResetError, ConnectionAbortedError) as e:
-        # Should send "player_disconnected" message
-        # or something to the other player, so they can stop waiting
-        # (or keep waiting but in a "waiting for a new game" state)
-        # TODO return that the match was invalid and which player disconnected
-        # so the score can be cleaned up (both here and for ConnectionAbortedError)
-        # can you combine except
         print(f"{type(e).__name__}, {e} (player disconnected?) {repr(e)}")
         _, p_reader, p_writer = player
         if p_reader.at_eof:
@@ -373,25 +358,12 @@ async def run_match(
                 print(f"(other) op_read_task done first (so switched op and cp), val: {cp_response}")
 
             if isinstance(cp_response, commands.Lost):
-                # TODO handle this
-                # ?? Maybe send "lost black" instead?
-                # We don't need to send this to the other player,
-                # if we've send the same moves to both, one player
-                # should win when the other loses.
-                # We check .Lost on both, but if it's the networked player,
-                # just display that the client won and go back to waiting for a
-                # start_game message
-
-                # TODO should this be cp_* instead of op_*?
-                # return the winner
                 return MatchResult.Winner, (op_name, op_reader, op_writer)
             elif isinstance(cp_response, commands.Surrender):
-                # TODO should this be op_* instead of cp_* and vice versa?
                 op_writer.write(pickle.dumps(commands.Surrender()))
                 await op_writer.drain()
                 return MatchResult.Winner, (op_name, op_reader, op_writer)
             elif isinstance(cp_response, commands.Draw):
-                # False if the match ended in a draw.
                 return MatchResult.Draw, None
             elif isinstance(cp_response, commands.Exit):
                 return MatchResult.Disconnected, (cp_name, cp_reader, cp_writer)
@@ -412,6 +384,7 @@ async def run_match(
             #await asyncio.sleep(1.0)
 
     except (EOFError, ConnectionResetError, ConnectionAbortedError) as e:
+
         # Should send "player_disconnected" message
         # or something to the other player, so they can stop waiting
         # (or keep waiting but in a "waiting for a new game" state)
@@ -422,6 +395,8 @@ async def run_match(
         
         return MatchResult.Disconnected, (cp_name, cp_reader, cp_writer)
         '''
+        print(f"{type(e).__name__}, {e} (player disconnected?) {repr(e)}")
+        
         _, p1_reader, p1_writer = p1
         _, p2_reader, p2_writer = p2
         if p1_reader.at_eof:
@@ -458,7 +433,9 @@ def custom_exception_handler(loop, context):
 
 def get_bots(num_bots: int) -> Union[List[Bot], commands.Exit]:
     # TODO Give bots better names
+
     bot_names = ["BOT-James", "BOT-Charles", "BOT-Jane", "BOT-Claire", "BOT-Dave", "BOT-Richard", "BOT-Elizabeth", "BOT-Gösta"]
+
     random.shuffle(bot_names)
     bots = []
     for bot in range(num_bots):
@@ -470,9 +447,7 @@ def get_bots(num_bots: int) -> Union[List[Bot], commands.Exit]:
     return bots
 
 def run_server():
-    # TODO: Enforce limits between 3 and 8
-    # we're allowing 2 for testing as the default
-    max_players = get_num("Number of Total Players(3 ~ 8)", "      Invalid input !", (3, 8), default=2)
+    max_players = get_num("Number of Total Players(3 ~ 8)", "      Invalid input !", (3, 8), default=3)
     if isinstance(max_players, commands.Exit):
         return
     # TODO: disallow tournament with only bots? do max_players-1 instead?
@@ -512,8 +487,6 @@ async def accept_connections(connected: List[Player], max_real_players: int):
             print(f"Connected players: {len(connected)} of {max_real_players}")
             break
         except OSError as e:
-            # TODO: 'raise e from e' re-raises the exception,
-            # keeping the old stack trace, should we use that instead?
             if (os.name == 'nt' and e.errno != errno.WSAEADDRINUSE
                 or os.name == 'posix' and e.errno != errno.EADDRINUSE
                     or os.name not in ['posix', 'nt']):
