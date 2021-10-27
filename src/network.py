@@ -384,33 +384,7 @@ async def run_match(
             #await asyncio.sleep(1.0)
 
     except (EOFError, ConnectionResetError, ConnectionAbortedError) as e:
-
-        # Should send "player_disconnected" message
-        # or something to the other player, so they can stop waiting
-        # (or keep waiting but in a "waiting for a new game" state)
-        # TODO return that the match was invalid and which player disconnected
-        # so the score can be cleaned up (both here and for ConnectionAbortedError)
-        # can you combine except
-        # print(f"{type(e).__name__}, {e} (player disconnected?) {repr(e)}")
-        
         return MatchResult.Disconnected, (cp_name, cp_reader, cp_writer)
-        '''
-        print(f"{type(e).__name__}, {e} (player disconnected?) {repr(e)}")
-        
-        _, p1_reader, p1_writer = p1
-        _, p2_reader, p2_writer = p2
-        if p1_reader.at_eof:
-            p1_writer.write(pickle.dumps(commands.OpponentDisconnected()))
-            await p1_writer.drain()
-            return MatchResult.Disconnected, p1
-        elif p2_reader.at_eof:
-            p2_writer.write(pickle.dumps(commands.OpponentDisconnected()))
-            await p2_writer.drain()
-            return MatchResult.Disconnected, p2
-        else:
-            assert False, "one of the players are not at EOF (is that OK for Connection*Error?)"
-
-        '''
 
 def is_full(num_connected: int, max_players: int) -> bool:
     return num_connected >= max_players
