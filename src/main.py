@@ -16,7 +16,6 @@ from typing import Union
 from color import Color
 from player import Player
 
-START_PIECES = 11
 board_connections = list({
     1: [2, 4, 10],
     2: [1, 3, 5],

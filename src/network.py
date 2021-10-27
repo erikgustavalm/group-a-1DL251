@@ -147,7 +147,6 @@ async def run_tournament(connected: List[Union[Player, Bot]], max_real_players: 
 
         while True:
             # choose 2 new players from the schedule
-            print(len(match_list))
             current_match : Optional[Tuple[int, Match]] = next_match(match_list)
             if (current_match is None):
                 print("No more matches to be played!\n")
@@ -199,6 +198,8 @@ async def run_tournament(connected: List[Union[Player, Bot]], max_real_players: 
                     match_list[match_index] = ((player1, player2), 2)
                 else:
                     assert False, f"Unknown value: {data}"
+
+                print(f"Winner: {data[0]}")
 
                 # hack for windows, doesn't like sending two messages
                 # in a row to the same writer for some reason
@@ -275,7 +276,9 @@ async def run_bot_match(
 
     p_name, p_reader, p_writer = player  # current player
     botName, botDiff = bot
+    # TODO randomize who's black and who's white
     print(f"Black/player 1 is {p_name}: {p_writer.get_extra_info('peername')}")
+    print(f"White/bot is {botName}: {botDiff}")
 
     try:
         p_writer.write(pickle.dumps(commands.StartBotGame(p_name, Color.Black, botName, botDiff)))
@@ -406,8 +409,6 @@ def custom_exception_handler(loop, context):
     loop.default_exception_handler(context)
 
 def get_bots(num_bots: int) -> Union[List[Bot], commands.Exit]:
-    # TODO Give bots better names
-
     bot_names = ["BOT-James", "BOT-Charles", "BOT-Jane", "BOT-Claire", "BOT-Dave", "BOT-Richard", "BOT-Elizabeth", "BOT-Gösta"]
 
     random.shuffle(bot_names)
