@@ -21,19 +21,19 @@ There are four cases in which the game can end:
   3. If a player cannot move any of their pieces in phase 2, in this case that player will lose. 
   4. The game can end with one of the players surrendering, quitting, exiting which leaves the other player as the winner.
 
+## Responsibility
++ whole code was written by Group A
 
 ## Dependencies
 + python version: 3.9
 
-## Responsbility
-+ whole code was written by Group A
-
 ## How to play the game?
 Players can choose to play game **Local** or **Online** in menu, which contains to play with real players or AI bots.
 + Local: 
-  1. Play with 1 player
-  2. AI bot that you can decide difficulties by Easy, Moderate, Hard
+  - Play with 1 player
+  - AI bot that you can decide difficulties by Easy, Moderate, Hard
 + Online:
+  **Should be played using at least 2 terminals, one for Server, the other for Client.**
   1. Start a server: Just hold a sever, not playing a game.  Chose "player num", "bot num", "port", then wait for others' connection, if players full then start the round-robin tournment.
   2. Join an existing server: Chose "port" and enter "name" to join the game, waiting for server to start game
 
