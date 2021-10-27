@@ -418,7 +418,7 @@ def get_bots(num_bots: int) -> Union[List[Bot], commands.Exit]:
     random.shuffle(bot_names)
     bots = []
     for bot in range(num_bots):
-        res = get_num(f"Bot {bot+1} difficulty (1 = easy, 2 = medium, 3 = hard)", "      Invalid input !", (1, 3), default=1)
+        res = get_num(f"Bot {bot+1} difficulty (1 = easy, 2 = medium, 3 = hard)", "Invalid input!", (1, 3), default=1)
         if isinstance(res, commands.Exit):
             return commands.Exit()
         bot_tuple = (bot_names[bot], Difficulty(res))
@@ -426,11 +426,11 @@ def get_bots(num_bots: int) -> Union[List[Bot], commands.Exit]:
     return bots
 
 def run_server():
-    max_players = get_num("Number of Total Players(3 ~ 8)", "      Invalid input !", (3, 8), default=3)
+    max_players = get_num("Number of Total Players(3 ~ 8)", "Invalid input!", (3, 8), default=3)
     if isinstance(max_players, commands.Exit):
         return
     # TODO: disallow tournament with only bots? do max_players-1 instead?
-    num_bots = get_num(f"Number of bots (0 ~ {max_players})", "      Invalid input !", (0, max_players), default=0)
+    num_bots = get_num(f"Number of bots (0 ~ {max_players})", "Invalid input!", (0, max_players), default=0)
     if isinstance(num_bots, commands.Exit):
         return
     max_real_players = max_players - num_bots

@@ -16,7 +16,9 @@ def get_num(question: str, err_msg: str, limit: (int, int), default: int) -> Uni
                 return res
             else:
                 print(f"{err_msg}, try again or type 'exit' or 'e' to go back to the menu")
+                print(f"valid inputs are between {limit[0]} and {limit[0]}, inclusive.\n")
         except:
+            print(f"valid inputs are between {limit[0]} and {limit[0]}, inclusive.\n")
             print(f"{err_msg}, try again or type 'exit' or 'e' to go back to the menu")
 
 def get_port(default: int = 15000) -> Union[int, commands.Exit]:

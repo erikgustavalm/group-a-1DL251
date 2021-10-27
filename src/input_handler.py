@@ -37,6 +37,7 @@ class InputHandler:
                 exit()
             if len(response) >= 1:
                 break
+            print(f"   Name needs to be at least 1 character long. Try again!")
         return response.upper() if to_upper else response
 
     def _make_question(self, cmd: CommandType) -> str:
@@ -61,10 +62,10 @@ class InputHandler:
                 if self._limits[0] <= number <= self._limits[1]:
                     return Place(number)
                 else:
-                    print("   [ Not a valid intersection, try again! ]")
+                    print(f"   [ Not a valid intersection, valid values are between {self._limits[0]+1} and {self._limits[1]+1}, inclusive. Try again! ]")
                     return self.get_command(cmd)
             except:
-                print("   [ Not an intersection, try again! ]")
+                print(f"   [ Not an intersection, valid values are numbers between {self._limits[0]+1} and {self._limits[1]+1}, inclusive. Try again! ]")
                 return self.get_command(cmd)
 
         elif cmd == CommandType.Move:
@@ -76,13 +77,13 @@ class InputHandler:
                             and self._limits[0] <= nums[1] <= self._limits[1]):
                         return Move(nums[0], nums[1])
                     else:
-                        print("   [ Not an intersection within the limits, try again! ]")
+                        print(f"   [ Not an intersection within the limits, valid values are between {self._limits[0]+1} and {self._limits[1]+1}, inclusive. try again! ]")
                         return self.get_command(cmd)
                 else:
                     print("   [ Provide 2 intersections ]")
                     return self.get_command(cmd)
             except:
-                print("   [ Not intersections, try again! ]")
+                print(f"   [ Not intersections, valid values are two numbers between {self._limits[0]+1} and {self._limits[1]+1}, inclusive. Try again! ]")
                 return self.get_command(cmd)
 
         elif cmd == CommandType.Remove:
@@ -91,8 +92,8 @@ class InputHandler:
                 if self._limits[0] <= number <= self._limits[1]:
                     return Remove(number)
                 else:
-                    print("   [ Not a valid intersection, try again! ]")
+                    print(f"   [ Not a valid intersection, valid values are between {self._limits[0]+1} and {self._limits[1]+1}, inclusive. Try again! ]")
                     return self.get_command(cmd)
             except:
-                print("   [ Not an intersection, try again! ]")
+                print(f"   [ Not an intersection, valid values are numbers between {self._limits[0]+1} and {self._limits[1]+1}, inclusive. Try again! ]")
                 return self.get_command(cmd)
