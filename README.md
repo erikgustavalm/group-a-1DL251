@@ -29,7 +29,7 @@ There are four cases in which the game can end:
 Players can choose to play game **Local** or **Online** in menu, which contains to play with real players or AI bots.
 + Local: 
   1. Play with 1 player
-  2. AI bot that you can decide difficulties by Easy, Moderite, Hard
+  2. AI bot that you can decide difficulties by Easy, Moderate, Hard
 + Online:
   1. Start a server: Just hold a sever, not playing a game.  Chose "player num", "bot num", "port", then wait for others' connection, if players full then start the round-robin tournment.
   2. Join an existing server: Chose "port" and enter "name" to join the game, waiting for server to start game
