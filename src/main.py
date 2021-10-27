@@ -83,7 +83,7 @@ def game_init(input_handler: input_handler.InputHandler) -> game_state.GameState
             return commands.Exit()
         p2_name = p2_name[:15]
         if p2_name == p1_name:
-            print(f"Can't have the same name as Player 1 ({p1_name}), try again or type 'e' or 'exit' to return to the menu.")
+            print("Can't have the same name as Player 1, try again or type 'e' or 'exit' to return to the menu.")
 
     num_nodes = len(board_connections)
     player1 = Player(p1_name)
@@ -354,7 +354,7 @@ def main():
             player_name = player_name[:15]
 
             ghandler.display_AI_menu()
-            res = get_num(f"Enter bot difficulty (1 = easy, 2 = medium, 3 = hard)", "Invalid input! ", (1, 3), default=1)
+            res = get_num(f"Enter bot difficulty (1 = easy, 2 = medium, 3 = hard)", "      Invalid input ! ", (1, 3), default=1)
             if isinstance(res, commands.Exit):
                 continue
             bot_name = f"AI ({(Difficulty(res).name)})"
@@ -374,7 +374,7 @@ def main():
             ghandler.display_start_tournament()
             network.run_server()
         else:
-            print("  Invalid input! Valid options are P, A, S, C, and Q. Try again!  \n")
+            print("  Invalid input !\n ")
 
 
 if __name__ == "__main__":
