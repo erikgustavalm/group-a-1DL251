@@ -116,11 +116,18 @@ def next_match(match_list : List[Match]) -> Optional[Tuple[int, Match]]:
             return (idx, match)
     return None
 
+
+def shuffle_tuple(tup):
+    tup = list(tup)
+    random.shuffle(tup)
+    return tuple(tup)
+
 #Create a list of matches to be played
 #Each match is a tuple which contains a tuple of the players and the outcome
 #Outcome is None if match hasn't been played, 1 if player1 won, 2 if player2 won
 def create_and_shuffle_matches(connected: List[Union[Player, Bot]]) -> List[Match]:
-    combs = list(combinations(connected, 2))
+    combs2 = list(combinations(connected, 2))
+    combs = list(map(shuffle_tuple, list(combinations(connected, 2))))
     match_list = (list(zip(combs, [None]*len(combs))))
     random.shuffle(match_list)
     return match_list
@@ -184,9 +191,9 @@ async def run_tournament(connected: List[Union[Player, Bot]], max_real_players: 
                     # if same difficulty, randomize winner
                     data = random.choice([player1, player2])
             elif player1_is_bot: # Match is player1 = bot and player2 = human
-                (res, data) = await run_bot_match(player2, player1)
+                (res, data) = await run_bot_match(player2, player1, Color.White)
             elif player2_is_bot: # Match is player2 = bot and player1 = human
-                (res, data) = await run_bot_match(player1, player2)
+                (res, data) = await run_bot_match(player1, player2, Color.Black)
             else: # Match between humans
                 (res, data) = await run_match(player1, player2)
 
@@ -271,17 +278,17 @@ async def run_tournament(connected: List[Union[Player, Bot]], max_real_players: 
 
 async def run_bot_match(
         player: Tuple[str, asyncio.StreamReader, asyncio.StreamWriter],
-        bot: Tuple[str,Difficulty]):
+        bot: Tuple[str, Difficulty],
+        color: Color):
     print("bot match has started")
 
     p_name, p_reader, p_writer = player  # current player
     botName, botDiff = bot
-    # TODO randomize who's black and who's white
-    print(f"Black/player 1 is {p_name}: {p_writer.get_extra_info('peername')}")
-    print(f"White/bot is {botName}: {botDiff}")
+    print(f"{color}/player 1 is {p_name}: {p_writer.get_extra_info('peername')}")
+    print(f"bot is {botName}: {botDiff}")
 
     try:
-        p_writer.write(pickle.dumps(commands.StartBotGame(p_name, Color.Black, botName, botDiff)))
+        p_writer.write(pickle.dumps(commands.StartBotGame(p_name, color, botName, botDiff)))
         await p_writer.drain()
 
         while True:
@@ -324,9 +331,6 @@ async def run_match(
         p1: Tuple[str, asyncio.StreamReader, asyncio.StreamWriter],
         p2: Tuple[str, asyncio.StreamReader, asyncio.StreamWriter]):
     print("match has started")
-
-    # TODO randomize which player gets which color,
-    # or should it be determined by the game schedule?
 
     cp_name, cp_reader, cp_writer = p1  # current player
     op_name, op_reader, op_writer = p2  # other player
