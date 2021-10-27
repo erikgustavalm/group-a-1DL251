@@ -127,7 +127,7 @@ class Bot(Player):
         elif self.diff == Difficulty.Medium:
             return Remove(random.choice(pos_removes))
         elif self.diff == Difficulty.Hard:
-            return Remove(random.choice(pos_removes))
+            return self._best_remove()
 
     def _possible_moves(self, color) -> [(int, int)]:
         # Returns all the possible moves that a player can do
